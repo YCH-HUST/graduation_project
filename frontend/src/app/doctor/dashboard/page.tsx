@@ -11,6 +11,16 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDateTime, formatCaseStatus } from '@/lib/utils'
+import { DatePickerWithRange } from '@/components/ui/date-range-picker'
+import { DateRange } from 'react-day-picker'
+import { format } from 'date-fns'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { toast } from 'sonner'
 import {
     Loader2,
@@ -29,18 +39,29 @@ export default function DoctorDashboardPage() {
     const [data, setData] = useState<PendingCasesResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
+    const [statusFilter, setStatusFilter] = useState('pending_review')
+    const [dateRange, setDateRange] = useState<DateRange | undefined>()
     const [currentPage, setCurrentPage] = useState(1)
     const pageSize = 10
 
     const fetchCases = useCallback(async () => {
         try {
             setIsLoading(true)
-            const response = await getPendingCases({
+            const params: any = {
                 page: currentPage,
                 page_size: pageSize,
-                status: 'pending_review',
+                status: statusFilter === 'all' ? undefined : statusFilter,
                 search: searchQuery || undefined,
-            })
+            }
+
+            if (dateRange?.from) {
+                params.start_date = format(dateRange.from, 'yyyy-MM-dd')
+            }
+            if (dateRange?.to) {
+                params.end_date = format(dateRange.to, 'yyyy-MM-dd')
+            }
+
+            const response = await getPendingCases(params)
             setData(response)
         } catch (err: any) {
             console.error('Fetch cases error:', err)
@@ -50,7 +71,7 @@ export default function DoctorDashboardPage() {
         } finally {
             setIsLoading(false)
         }
-    }, [currentPage, searchQuery])
+    }, [currentPage, searchQuery, statusFilter, dateRange])
 
     useEffect(() => {
         fetchCases()
@@ -60,6 +81,14 @@ export default function DoctorDashboardPage() {
         e.preventDefault()
         setCurrentPage(1)
         fetchCases()
+    }
+
+    // 重置所有筛选
+    const handleReset = () => {
+        setSearchQuery('')
+        setStatusFilter('pending_review')
+        setDateRange(undefined)
+        setCurrentPage(1)
     }
 
     const handleRefresh = () => {
@@ -90,22 +119,52 @@ export default function DoctorDashboardPage() {
                 </Button>
             </div>
 
-            {/* 搜索栏 */}
+            {/* 搜索和筛选栏 */}
             <Card>
                 <CardContent className="pt-6">
-                    <form onSubmit={handleSearch} className="flex gap-4">
+                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+                        {/* 状态筛选 */}
+                        <div className="w-[180px]">
+                            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1) }}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="病例状态" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="pending_review">待审核</SelectItem>
+                                    <SelectItem value="approved">已通过</SelectItem>
+                                    <SelectItem value="rejected">已驳回</SelectItem>
+                                    <SelectItem value="all">全部状态</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* 日期筛选 */}
+                        <div className="w-[300px]">
+                            <DatePickerWithRange
+                                date={dateRange}
+                                setDate={(date) => { setDateRange(date); setCurrentPage(1) }}
+                            />
+                        </div>
+
+                        {/* 关键词搜索 */}
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
-                                placeholder="搜索患者ID、姓名或关键词..."
+                                placeholder="搜索患者ID、姓名或主诉..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-10"
                             />
                         </div>
-                        <Button type="submit" disabled={isLoading}>
-                            搜索
-                        </Button>
+
+                        <div className="flex gap-2">
+                            <Button type="submit" disabled={isLoading}>
+                                搜索
+                            </Button>
+                            <Button type="button" variant="ghost" onClick={handleReset}>
+                                重置
+                            </Button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>

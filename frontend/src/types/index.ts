@@ -165,7 +165,9 @@ export interface PendingCasesRequest {
   page?: number;
   page_size?: number;
   search?: string;
-  status?: CaseStatus;
+  status?: string; // 支持逗号分隔的多状态
+  start_date?: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
 }
 
 export interface PendingCasesResponse {

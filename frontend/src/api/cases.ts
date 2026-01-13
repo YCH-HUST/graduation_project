@@ -122,7 +122,7 @@ export async function getPendingCases(params: PendingCasesRequest): Promise<Pend
         }
     }
 
-    const response = await apiClient.get<PendingCasesResponse>('/api/cases', {
+    const response = await apiClient.get<PendingCasesResponse>('/api/cases/', {
         params,
     })
     return response.data

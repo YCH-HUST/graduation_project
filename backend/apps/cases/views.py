@@ -112,14 +112,28 @@ class CaseViewSet(viewsets.GenericViewSet):
         if user.role == 'patient':
             queryset = queryset.filter(patient=user)
         
-        # 按状态过滤
+        # 按状态过滤 - 支持逗号分隔的多状态
         status_filter = request.query_params.get('status')
         if status_filter:
             if status_filter == 'pending':
+                # 兼容旧的前端逻辑
                 queryset = queryset.filter(status='pending_review')
+            elif ',' in status_filter:
+                # 支持多状态筛选
+                statuses = status_filter.split(',')
+                queryset = queryset.filter(status__in=statuses)
             else:
                 queryset = queryset.filter(status=status_filter)
         
+        # 日期范围过滤
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if start_date:
+            queryset = queryset.filter(created_at__date__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__date__lte=end_date)
+            
         # 搜索功能
         search = request.query_params.get('search')
         if search:
