@@ -18,6 +18,7 @@ import {
     LogOut,
     Database,
     User,
+    Users,
     Menu,
     X,
 } from 'lucide-react'
@@ -34,7 +35,10 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '新建病例', href: '/patient/new-case', icon: <Plus className="w-5 h-5" /> },
     ],
     doctor: [
+        { label: '首页', href: '/doctor/home', icon: <Home className="w-5 h-5" /> },
         { label: '待审列表', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
+        { label: '患者管理', href: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
+        { label: '个人资料', href: '/doctor/profile', icon: <Settings className="w-5 h-5" /> },
     ],
     admin: [
         { label: '健康检查', href: '/admin/health', icon: <Activity className="w-5 h-5" /> },

@@ -4,10 +4,11 @@ Views for accounts app.
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
+from .serializers import LoginSerializer, RegisterSerializer, UserSerializer, ProfileUpdateSerializer
 from apps.audit.utils import log_action
 
 
@@ -68,3 +69,69 @@ class RegisterView(APIView):
             'role': user.role,
             'user': UserSerializer(user).data
         }, status=status.HTTP_201_CREATED)
+
+
+class ProfileView(APIView):
+    """
+    个人资料接口
+    GET /api/profile/ - 获取当前用户资料
+    PUT /api/profile/ - 更新当前用户资料
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """获取当前用户资料"""
+        return Response(UserSerializer(request.user).data)
+    
+    def put(self, request):
+        """更新当前用户资料"""
+        serializer = ProfileUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        
+        # 记录操作日志
+        log_action(user=request.user, action='update_profile', details={'fields': list(request.data.keys())})
+        
+        return Response(UserSerializer(request.user).data)
+
+
+class RecentPatientsView(APIView):
+    """
+    医生最近患者列表
+    GET /api/doctor/recent-patients/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """获取医生最近接诊的患者列表"""
+        from apps.cases.models import Case
+        
+        # 验证是否为医生
+        if request.user.role != 'doctor':
+            return Response({'detail': '仅医生可访问此接口'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # 获取最近审核过的病例（按更新时间倒序）
+        recent_cases = Case.objects.filter(
+            reviews__doctor=request.user
+        ).select_related('patient').order_by('-updated_at').distinct()[:10]
+        
+        # 构建患者列表
+        patients = []
+        seen_patient_ids = set()
+        for case in recent_cases:
+            if case.patient_id not in seen_patient_ids:
+                seen_patient_ids.add(case.patient_id)
+                patients.append({
+                    'id': case.patient.id,
+                    'username': case.patient.username,
+                    'full_name': case.patient.full_name or case.patient.username,
+                    'case_id': case.id,
+                    'case_status': case.status,
+                    'chief_complaint': case.chief_complaint_text[:50] if case.chief_complaint_text else '',
+                    'created_at': case.created_at.isoformat(),
+                })
+        
+        return Response({
+            'patients': patients,
+            'total': len(patients)
+        })

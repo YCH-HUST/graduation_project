@@ -7,12 +7,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from apps.accounts.urls import profile_urlpatterns
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('apps.accounts.urls')),
     path('api/', include('apps.cases.urls')),
     path('api/', include('apps.pipeline.urls')),
     path('api/', include('apps.adminops.urls')),
+    path('api/', include(profile_urlpatterns)),  # Profile 和 Doctor API
 ]
 
 # Serve media files in development

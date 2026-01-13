@@ -11,6 +11,12 @@ export interface User {
   email?: string;
   role: UserRole;
   full_name?: string;
+  // 医生个人资料字段
+  hospital?: string;
+  job_title?: string;
+  years_of_experience?: number;
+  gender?: 'male' | 'female' | '';
+  age?: number;
 }
 
 export interface LoginRequest {

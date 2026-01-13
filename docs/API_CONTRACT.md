@@ -394,7 +394,233 @@ Authorization: Bearer <token>
 
 ---
 
-## 4. 错误响应规范
+## 4. 个人资料接口
+
+### 4.1 获取个人资料
+
+```
+GET /api/profile/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{
+  "id": 1,
+  "username": "doctor1",
+  "email": "doctor@example.com",
+  "full_name": "张医生",
+  "role": "doctor",
+  "hospital": "北京中医院",
+  "job_title": "主任医师",
+  "years_of_experience": 15,
+  "gender": "male",
+  "age": 45
+}
+```
+
+---
+
+### 4.2 更新个人资料
+
+```
+PUT /api/profile/
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**请求体**
+```json
+{
+  "full_name": "张医生",
+  "email": "doctor@example.com",
+  "hospital": "北京中医院",
+  "job_title": "主任医师",
+  "years_of_experience": 15,
+  "gender": "male",
+  "age": 45
+}
+```
+
+> 所有字段均为可选，仅需传入要更新的字段
+
+**成功响应** `200 OK`
+```json
+{
+  "id": 1,
+  "username": "doctor1",
+  "email": "doctor@example.com",
+  "full_name": "张医生",
+  "role": "doctor",
+  "hospital": "北京中医院",
+  "job_title": "主任医师",
+  "years_of_experience": 15,
+  "gender": "male",
+  "age": 45
+}
+```
+
+---
+
+### 4.3 获取医生最近患者
+
+```
+GET /api/doctor/recent-patients/
+Authorization: Bearer <token>
+```
+
+> 仅医生角色可访问
+
+**成功响应** `200 OK`
+```json
+{
+  "patients": [
+    {
+      "id": 1,
+      "username": "patient1",
+      "full_name": "李患者",
+      "case_id": 101,
+      "case_status": "approved",
+      "chief_complaint": "头痛三天，伴有失眠",
+      "created_at": "2024-01-13T10:30:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+---
+
+### 4.4 获取患者列表
+
+```
+GET /api/doctor/patients/?page=1&page_size=10&search=关键词
+Authorization: Bearer <token>
+```
+
+> 仅医生角色可访问
+
+**成功响应** `200 OK`
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "username": "patient1",
+      "full_name": "张三",
+      "email": "patient@example.com",
+      "gender": "male",
+      "age": 35,
+      "case_count": 3,
+      "date_joined": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "page": 1,
+  "page_size": 10,
+  "total": 25
+}
+```
+
+---
+
+### 4.5 创建患者
+
+```
+POST /api/doctor/patients/
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**请求体**
+```json
+{
+  "username": "newpatient",
+  "password": "password123",
+  "full_name": "新患者",
+  "email": "new@example.com",
+  "gender": "male",
+  "age": 30
+}
+```
+
+**成功响应** `201 Created`
+
+---
+
+### 4.6 获取患者详情
+
+```
+GET /api/doctor/patients/{id}/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{
+  "patient": {
+    "id": 1,
+    "username": "patient1",
+    "full_name": "张三",
+    "email": "patient@example.com",
+    "gender": "male",
+    "age": 35,
+    "hospital": "",
+    "job_title": "",
+    "years_of_experience": null,
+    "date_joined": "2024-01-01T00:00:00Z"
+  },
+  "cases": [
+    {
+      "id": "uuid-case-id",
+      "chief_complaint": "头痛三天",
+      "status": "approved",
+      "created_at": "2024-01-10T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 4.7 更新患者
+
+```
+PUT /api/doctor/patients/{id}/
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**请求体**
+```json
+{
+  "full_name": "张三",
+  "email": "new@example.com",
+  "gender": "male",
+  "age": 36
+}
+```
+
+---
+
+### 4.8 删除患者
+
+```
+DELETE /api/doctor/patients/{id}/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{
+  "ok": true
+}
+```
+
+---
+
+## 5. 错误响应规范
+
+
 
 ### 通用错误格式
 ```json

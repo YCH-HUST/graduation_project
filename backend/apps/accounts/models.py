@@ -28,6 +28,42 @@ class User(AbstractUser):
         verbose_name='姓名'
     )
     
+    # 医生专属字段
+    GENDER_CHOICES = [
+        ('male', '男'),
+        ('female', '女'),
+    ]
+    
+    hospital = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name='所属医院'
+    )
+    job_title = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name='职称'
+    )
+    years_of_experience = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='从业年限'
+    )
+    gender = models.CharField(
+        max_length=10,
+        choices=GENDER_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='性别'
+    )
+    age = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name='年龄'
+    )
+    
     class Meta:
         verbose_name = '用户'
         verbose_name_plural = '用户'
