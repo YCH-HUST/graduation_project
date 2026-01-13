@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, UserSerializer
+from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 from apps.audit.utils import log_action
 
 
@@ -44,3 +44,27 @@ class LoginView(APIView):
         if x_forwarded_for:
             return x_forwarded_for.split(',')[0]
         return request.META.get('REMOTE_ADDR', '')
+
+
+class RegisterView(APIView):
+    """
+    用户注册接口
+    POST /auth/register/
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user = serializer.save()
+        
+        # 生成 JWT token
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
+        return Response({
+            'token': access_token,
+            'role': user.role,
+            'user': UserSerializer(user).data
+        }, status=status.HTTP_201_CREATED)

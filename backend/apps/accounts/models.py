@@ -21,6 +21,12 @@ class User(AbstractUser):
         default='patient',
         verbose_name='角色'
     )
+    full_name = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        verbose_name='姓名'
+    )
     
     class Meta:
         verbose_name = '用户'
