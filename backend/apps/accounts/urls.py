@@ -4,6 +4,7 @@ URL configuration for accounts app.
 from django.urls import path
 from .views import LoginView, RegisterView, ProfileView, RecentPatientsView
 from .patient_views import PatientListCreateView, PatientDetailView
+from .statistics_views import DoctorStatisticsView
 
 urlpatterns = [
     # 带斜杠的路由
@@ -25,4 +26,7 @@ profile_urlpatterns = [
     path('doctor/patients', PatientListCreateView.as_view(), name='patient_list_create_no_slash'),
     path('doctor/patients/<int:pk>/', PatientDetailView.as_view(), name='patient_detail'),
     path('doctor/patients/<int:pk>', PatientDetailView.as_view(), name='patient_detail_no_slash'),
+    # 统计 API
+    path('doctor/statistics/', DoctorStatisticsView.as_view(), name='doctor_statistics'),
+    path('doctor/statistics', DoctorStatisticsView.as_view(), name='doctor_statistics_no_slash'),
 ]

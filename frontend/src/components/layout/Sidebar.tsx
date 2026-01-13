@@ -19,6 +19,8 @@ import {
     Database,
     User,
     Users,
+    BarChart3,
+    Bell,
     Menu,
     X,
 } from 'lucide-react'
@@ -38,6 +40,8 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '首页', href: '/doctor/home', icon: <Home className="w-5 h-5" /> },
         { label: '待审列表', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
         { label: '患者管理', href: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
+        { label: '数据统计', href: '/doctor/statistics', icon: <BarChart3 className="w-5 h-5" /> },
+        { label: '消息通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" /> },
         { label: '个人资料', href: '/doctor/profile', icon: <Settings className="w-5 h-5" /> },
     ],
     admin: [
@@ -117,24 +121,18 @@ export function Sidebar() {
 
             {/* 导航菜单 */}
             <nav className="flex-1 p-3 md:p-4 space-y-1.5">
-                {items.map((item, index) => {
+                {items.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                     return (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200',
-                                'animate-fade-in-up',
+                                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-150',
                                 isActive
-                                    ? cn('bg-gradient-to-r text-white shadow-lg', gradientColor,
-                                        role === 'patient' && 'shadow-emerald-500/30',
-                                        role === 'doctor' && 'shadow-blue-500/30',
-                                        role === 'admin' && 'shadow-purple-500/30'
-                                    )
+                                    ? cn('bg-gradient-to-r text-white shadow-md', gradientColor)
                                     : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
                             )}
-                            style={{ animationDelay: `${index * 50}ms` }}
                         >
                             {item.icon}
                             {item.label}

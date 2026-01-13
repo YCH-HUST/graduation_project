@@ -16,6 +16,7 @@ urlpatterns = [
     path('api/', include('apps.pipeline.urls')),
     path('api/', include('apps.adminops.urls')),
     path('api/', include(profile_urlpatterns)),  # Profile 和 Doctor API
+    path('api/', include('apps.notifications.urls')),  # 通知 API
 ]
 
 # Serve media files in development

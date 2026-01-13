@@ -17,6 +17,7 @@ from .serializers import (
 )
 from apps.accounts.permissions import IsPatient, IsDoctor, IsCaseOwnerOrDoctorOrAdmin
 from apps.audit.utils import log_action
+from apps.notifications.utils import notify_doctors_new_case, notify_patient_case_reviewed
 
 
 class CaseViewSet(viewsets.GenericViewSet):
@@ -57,6 +58,9 @@ class CaseViewSet(viewsets.GenericViewSet):
         
         # 记录审计日志
         log_action(user=request.user, action='case_create', case=case)
+        
+        # 通知所有医生有新病例待审核
+        notify_doctors_new_case(case)
         
         # 返回数字格式的 case_id（前端期望）
         return Response({'case_id': case.id.int if hasattr(case.id, 'int') else str(case.id)}, status=status.HTTP_201_CREATED)
@@ -187,5 +191,8 @@ class CaseViewSet(viewsets.GenericViewSet):
         # 记录审计日志
         action_type = 'review_approve' if decision == 'approved' else 'review_reject'
         log_action(user=request.user, action=action_type, case=case)
+        
+        # 通知患者审核结果
+        notify_patient_case_reviewed(case, decision, request.user)
         
         return Response({'ok': True})

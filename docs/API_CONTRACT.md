@@ -618,6 +618,98 @@ Authorization: Bearer <token>
 
 ---
 
+### 4.9 获取医生统计数据
+
+```
+GET /api/doctor/statistics/
+Authorization: Bearer <token>
+```
+
+> 仅医生角色可访问
+
+**成功响应** `200 OK`
+```json
+{
+  "overview": {
+    "total_reviews": 156,
+    "approved_count": 120,
+    "rejected_count": 36,
+    "approval_rate": 76.9,
+    "pending_count": 8
+  },
+  "trend": [
+    { "date": "01-08", "count": 12 },
+    { "date": "01-09", "count": 18 }
+  ],
+  "syndromes": [
+    { "name": "肝郁脾虚证", "count": 25 },
+    { "name": "气滞血瘀证", "count": 18 }
+  ],
+  "recent_reviews": [
+    {
+      "id": 1,
+      "case_id": "uuid",
+      "patient_name": "张三",
+      "decision": "approved",
+      "created_at": "2024-01-13T10:30:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 4.10 获取通知列表
+
+```
+GET /api/notifications/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{
+  "items": [
+    {
+      "id": 1,
+      "type": "new_case",
+      "title": "新病例待审核",
+      "content": "患者张三提交了新病例",
+      "related_case_id": "uuid",
+      "is_read": false,
+      "created_at": "2024-01-14T10:00:00Z"
+    }
+  ],
+  "unread_count": 5
+}
+```
+
+### 4.11 标记通知已读
+
+```
+PUT /api/notifications/{id}/read/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{ "ok": true }
+```
+
+### 4.12 全部标记已读
+
+```
+PUT /api/notifications/read-all/
+Authorization: Bearer <token>
+```
+
+**成功响应** `200 OK`
+```json
+{ "ok": true, "count": 5 }
+```
+
+---
+
 ## 5. 错误响应规范
 
 
