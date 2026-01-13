@@ -5,13 +5,15 @@ Updated to match frontend API contract format.
 import time
 import requests
 from datetime import datetime
-from rest_framework import status
+from rest_framework import status, viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.conf import settings
 from django.db import connection
 
 from apps.accounts.permissions import IsAdmin
+from .models import GovernanceItem
+from .serializers import GovernanceItemSerializer, GovernanceItemCreateSerializer
 
 
 class HealthCheckView(APIView):
@@ -132,3 +134,62 @@ class HealthCheckView(APIView):
             return 'unhealthy'
         else:
             return 'degraded'
+
+
+class GovernanceViewSet(viewsets.GenericViewSet):
+    """
+    数据治理接口
+    GET /api/admin/governance/?type=synonym
+    POST /api/admin/governance/
+    DELETE /api/admin/governance/{id}/
+    """
+    queryset = GovernanceItem.objects.all()
+    permission_classes = [IsAdmin]
+    
+    def list(self, request):
+        """
+        GET /api/admin/governance/?type=synonym
+        获取数据治理项列表
+        """
+        queryset = self.get_queryset()
+        
+        # 按类型过滤
+        item_type = request.query_params.get('type')
+        if item_type:
+            queryset = queryset.filter(type=item_type)
+        
+        serializer = GovernanceItemSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    def create(self, request):
+        """
+        POST /api/admin/governance/
+        创建数据治理项
+        """
+        serializer = GovernanceItemCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        item = GovernanceItem.objects.create(
+            type=serializer.validated_data['type'],
+            value=serializer.validated_data['value'],
+            description=serializer.validated_data.get('description', ''),
+            created_by=request.user
+        )
+        
+        return Response(
+            GovernanceItemSerializer(item).data,
+            status=status.HTTP_201_CREATED
+        )
+    
+    def destroy(self, request, pk=None):
+        """
+        DELETE /api/admin/governance/{id}/
+        删除数据治理项
+        """
+        try:
+            item = GovernanceItem.objects.get(pk=pk)
+        except GovernanceItem.DoesNotExist:
+            return Response({'detail': '项目不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
