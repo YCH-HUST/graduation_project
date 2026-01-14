@@ -175,7 +175,7 @@ class CaseViewSet(viewsets.GenericViewSet):
             return Response({'detail': '病例不存在'}, status=status.HTTP_404_NOT_FOUND)
         
         # 检查病例状态
-        if case.status != 'pending_review':
+        if case.status not in ['pending_review', 'approved']:
             return Response({'detail': '该病例当前状态不可审核'}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = ReviewCreateSerializer(data=request.data)
@@ -183,6 +183,10 @@ class CaseViewSet(viewsets.GenericViewSet):
         
         data = serializer.validated_data
         decision = data['decision']
+
+        # 如果病例已通过，仅允许修订
+        if case.status == 'approved' and decision != 'revise':
+            return Response({'detail': '已通过的病例仅允许进行修订'}, status=status.HTTP_400_BAD_REQUEST)
         
         # 处理前端字段名
         edited_syndromes = data.get('edited_syndromes') or data.get('edited_syndrome_json') or {}

@@ -568,36 +568,51 @@ export default function ReviewPage() {
                                         </div>
                                     ) : (
                                         <>
-                                            <Button
-                                                className="w-full"
-                                                onClick={() => handleSubmitReview('approve')}
-                                                disabled={isSubmitting}
-                                            >
-                                                {isSubmitting ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                                ) : (
-                                                    <Check className="w-4 h-4 mr-2" />
-                                                )}
-                                                通过审核
-                                            </Button>
-                                            <div className="grid grid-cols-2 gap-3">
+                                            {/* 如果已通过，只显示修订按钮 */}
+                                            {caseData.status === 'approved' ? (
                                                 <Button
                                                     variant="outline"
+                                                    className="w-full"
                                                     onClick={toggleEditMode}
                                                     disabled={isSubmitting}
                                                 >
-                                                    <Edit3 className="w-4 h-4 mr-1" />
+                                                    <Edit3 className="w-4 h-4 mr-2" />
                                                     修订结果
                                                 </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    onClick={() => handleSubmitReview('reject')}
-                                                    disabled={isSubmitting}
-                                                >
-                                                    <X className="w-4 h-4 mr-1" />
-                                                    驳回
-                                                </Button>
-                                            </div>
+                                            ) : (
+                                                <>
+                                                    <Button
+                                                        className="w-full"
+                                                        onClick={() => handleSubmitReview('approve')}
+                                                        disabled={isSubmitting}
+                                                    >
+                                                        {isSubmitting ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                        ) : (
+                                                            <Check className="w-4 h-4 mr-2" />
+                                                        )}
+                                                        通过审核
+                                                    </Button>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={toggleEditMode}
+                                                            disabled={isSubmitting}
+                                                        >
+                                                            <Edit3 className="w-4 h-4 mr-1" />
+                                                            修订结果
+                                                        </Button>
+                                                        <Button
+                                                            variant="destructive"
+                                                            onClick={() => handleSubmitReview('reject')}
+                                                            disabled={isSubmitting}
+                                                        >
+                                                            <X className="w-4 h-4 mr-1" />
+                                                            驳回
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </div>
@@ -609,7 +624,7 @@ export default function ReviewPage() {
                         )}
                     </CardContent>
                 </Card>
-            </div>
-        </div>
+            </div >
+        </div >
     )
 }
