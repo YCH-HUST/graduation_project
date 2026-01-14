@@ -33,7 +33,7 @@ export async function createCase(
 ): Promise<CreateCaseResponse> {
     if (isMockMode()) {
         await delay(1000)
-        return { case_id: Date.now() }
+        return { case_id: Date.now().toString() }
     }
 
     const formData = new FormData()
@@ -52,7 +52,7 @@ export async function createCase(
 /**
  * 触发流水线运行
  */
-export async function runPipeline(caseId: number): Promise<PipelineStatusResponse> {
+export async function runPipeline(caseId: string): Promise<PipelineStatusResponse> {
     if (isMockMode()) {
         resetMockPipelineProgress()
         await delay(500)
@@ -73,10 +73,12 @@ export async function runPipeline(caseId: number): Promise<PipelineStatusRespons
 /**
  * 查询流水线状态
  */
-export async function getPipelineStatus(caseId: number): Promise<PipelineStatusResponse> {
+export async function getPipelineStatus(caseId: string): Promise<PipelineStatusResponse> {
     if (isMockMode()) {
         await delay(500)
-        return getMockPipelineStatus(caseId)
+        // Mock ID 可能是数字，这里做个转换
+        const mockId = typeof caseId === 'string' ? parseInt(caseId) : caseId
+        return getMockPipelineStatus(mockId as number || 1)
     }
 
     const response = await apiClient.get<PipelineStatusResponse>(
@@ -88,18 +90,19 @@ export async function getPipelineStatus(caseId: number): Promise<PipelineStatusR
 /**
  * 获取病例详情
  */
-export async function getCaseDetail(caseId: number): Promise<CaseDetailResponse> {
+export async function getCaseDetail(caseId: string): Promise<CaseDetailResponse> {
     if (isMockMode()) {
         await delay(500)
-        const mockCase = mockCases.find(c => c.id === caseId) || {
+        const mockId = typeof caseId === 'string' ? parseInt(caseId) : caseId
+        const mockCase = mockCases.find(c => String(c.id) === String(caseId)) || {
             ...mockCases[0],
             id: caseId,
         }
         return {
-            case: mockCase,
+            case: mockCase as any, // Mock 数据类型需调整，暂时绕过
             latest_run: {
                 ...mockPipelineRun,
-                case_id: caseId,
+                case_id: caseId, // 更新 mock 数据以匹配
                 diagnosis_result: mockDiagnosisResult,
             },
             assets: mockAssets,
@@ -120,7 +123,7 @@ export async function getPendingCases(params: PendingCasesRequest): Promise<Pend
             !params.status || c.status === params.status
         )
         return {
-            items: filteredCases,
+            items: filteredCases as any[],
             page: params.page || 1,
             page_size: params.page_size || 10,
             total: filteredCases.length,
@@ -137,7 +140,7 @@ export async function getPendingCases(params: PendingCasesRequest): Promise<Pend
  * 提交审核
  */
 export async function submitReview(
-    caseId: number,
+    caseId: string,
     payload: ReviewPayload
 ): Promise<ReviewResponse> {
     if (isMockMode()) {

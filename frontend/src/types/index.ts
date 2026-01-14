@@ -55,7 +55,7 @@ export type CaseStatus =
   | 'failed';
 
 export interface Case {
-  id: number;
+  id: string;
   patient_id: number;
   patient_name?: string;
   tongue_image: string;
@@ -82,7 +82,7 @@ export interface CreateCaseRequest {
 }
 
 export interface CreateCaseResponse {
-  case_id: number;
+  case_id: string;
 }
 
 // =============== 流水线相关 ===============
@@ -90,7 +90,7 @@ export type PipelineStatus = 'pending' | 'running' | 'completed' | 'failed';
 
 export interface PipelineRun {
   id: number;
-  case_id: number;
+  case_id: string;
   status: PipelineStatus;
   progress: number;               // 0-100
   current_stage?: string;

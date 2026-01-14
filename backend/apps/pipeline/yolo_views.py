@@ -140,6 +140,46 @@ def draw_detections(image: np.ndarray, detections: list) -> np.ndarray:
     return result
 
 
+def run_yolo_detection(image: np.ndarray) -> tuple[list, np.ndarray]:
+    """
+    执行 YOLO 检测并返回结果和标注图像
+
+    Args:
+        image: BGR 格式的图像 (OpenCV)
+
+    Returns:
+        detections: 检测结果列表
+        annotated_image: 标注后的图像 (BGR)
+    """
+    # 加载模型并执行推理
+    model = get_yolo_model()
+    results = model(image)
+
+    # 解析检测结果
+    detections = []
+    for result in results:
+        boxes = result.boxes
+        if boxes is not None:
+            for i in range(len(boxes)):
+                box = boxes[i]
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                confidence = float(box.conf[0])
+                class_id = int(box.cls[0])
+                class_name = CLASS_NAMES.get(class_id, f"类别{class_id}")
+
+                detections.append({
+                    'class_id': class_id,
+                    'class_name': class_name,
+                    'confidence': confidence,
+                    'bbox': [x1, y1, x2, y2],
+                })
+
+    # 绘制检测框
+    annotated_image = draw_detections(image, detections)
+    
+    return detections, annotated_image
+
+
 class YoloDetectView(APIView):
     """
     YOLO 舌象检测 API
@@ -184,31 +224,8 @@ class YoloDetectView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 加载模型并执行推理
-            model = get_yolo_model()
-            results = model(image)
-            
-            # 解析检测结果
-            detections = []
-            for result in results:
-                boxes = result.boxes
-                if boxes is not None:
-                    for i in range(len(boxes)):
-                        box = boxes[i]
-                        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                        confidence = float(box.conf[0])
-                        class_id = int(box.cls[0])
-                        class_name = CLASS_NAMES.get(class_id, f"类别{class_id}")
-                        
-                        detections.append({
-                            'class_id': class_id,
-                            'class_name': class_name,
-                            'confidence': confidence,
-                            'bbox': [x1, y1, x2, y2],
-                        })
-            
-            # 绘制检测框
-            annotated_image = draw_detections(image, detections)
+            # 使用提取的公共函数执行检测
+            detections, annotated_image = run_yolo_detection(image)
             
             # 转换为 Base64
             _, buffer = cv2.imencode('.jpg', annotated_image, [cv2.IMWRITE_JPEG_QUALITY, 90])

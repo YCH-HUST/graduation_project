@@ -38,7 +38,7 @@ import type { CaseDetailResponse, Asset, AssetType } from '@/types'
 
 export default function CaseDetailPage() {
     const params = useParams()
-    const caseId = Number(params.id)
+    const caseId = params.id as string
     const { setCurrentCase, setCurrentRun, setCurrentAssets } = useCaseStore()
 
     const [data, setData] = useState<CaseDetailResponse | null>(null)

@@ -40,7 +40,7 @@ import type { CaseDetailResponse, ReviewDecision, Syndrome, Formula, AssetType }
 export default function ReviewPage() {
     const params = useParams()
     const router = useRouter()
-    const caseId = Number(params.id)
+    const caseId = params.id as string
 
     const [data, setData] = useState<CaseDetailResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)

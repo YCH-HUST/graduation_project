@@ -61,7 +61,7 @@ export default function NewCasePage() {
     const [annotatedImage, setAnnotatedImage] = useState<string>('')
 
     // 流水线状态
-    const [caseId, setCaseId] = useState<number | null>(null)
+    const [caseId, setCaseId] = useState<string | null>(null)
     const [progress, setProgress] = useState(0)
     const [currentStage, setCurrentStage] = useState('')
     const [errorMessage, setErrorMessage] = useState('')
@@ -186,7 +186,7 @@ export default function NewCasePage() {
     }
 
     // 轮询流水线状态
-    const pollPipelineStatus = useCallback(async (id: number) => {
+    const pollPipelineStatus = useCallback(async (id: string) => {
         setPolling(true)
 
         const maxAttempts = 60
@@ -626,7 +626,7 @@ export default function NewCasePage() {
     }
 
     // ========== 渲染处理中状态 ==========
-    if (pageState === 'submitting' || pageState === 'processing' || pageState === 'success') {
+    if (pageState === 'processing' || pageState === 'success') {
         return (
             <div className="max-w-2xl mx-auto">
                 <Card>
@@ -643,14 +643,12 @@ export default function NewCasePage() {
                             )}
                         </div>
                         <CardTitle className="text-2xl">
-                            {pageState === 'success' ? '诊断完成' : pageState === 'submitting' ? '正在提交' : '正在分析中'}
+                            {pageState === 'success' ? '诊断完成' : '正在分析中'}
                         </CardTitle>
                         <CardDescription>
                             {pageState === 'success'
                                 ? '正在跳转到结果页面...'
-                                : pageState === 'submitting'
-                                    ? '正在创建病例...'
-                                    : '请稍候，AI 正在分析您的舌象数据'}
+                                : '请稍候，AI 正在分析您的舌象数据'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">

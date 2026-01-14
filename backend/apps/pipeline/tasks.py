@@ -13,6 +13,9 @@ import io
 from apps.cases.models import Case, CaseAsset
 from apps.pipeline.models import PipelineRun
 from apps.pipeline.clients import yolo_client, nlp_client, syndrome_client, explanation_client
+from apps.pipeline.yolo_views import run_yolo_detection
+import cv2
+import numpy as np
 
 
 def run_pipeline(case_id: str, pipeline_run_id: int):
@@ -53,14 +56,19 @@ def run_pipeline(case_id: str, pipeline_run_id: int):
         pipeline_run.progress = 20
         pipeline_run.save()
         
-        yolo_result = yolo_client.predict(image_path)
-        
-        # 生成模拟的 mask 和 annotated 图像
+        # 先生成资产（执行真实检测）
+        real_detections = []
         if raw_image_asset and raw_image_asset.file:
             try:
-                _generate_mock_assets(case, raw_image_asset)
+                real_detections = _generate_assets(case, raw_image_asset)
             except Exception as e:
-                print(f"Warning: Failed to generate mock assets: {e}")
+                print(f"Warning: Failed to generate assets: {e}")
+                traceback.print_exc()
+
+        #以此为基础合并 Mock 数据（保留特征分析）
+        yolo_result = yolo_client.predict(image_path)
+        if real_detections:
+            yolo_result['detections'] = real_detections
         
         pipeline_run.yolo_result_json = yolo_result
         pipeline_run.progress = 40
@@ -133,44 +141,52 @@ def run_pipeline(case_id: str, pipeline_run_id: int):
             print(f"Error updating failure status: {inner_e}")
 
 
-def _generate_mock_assets(case: Case, raw_asset: CaseAsset):
+def _generate_assets(case: Case, raw_asset: CaseAsset) -> list:
     """
-    生成模拟的分割掩码和标注图像
-    在实际应用中，这些会由 YOLO 服务生成
+    生成分割掩码和标注图像（使用真实 YOLO）
+    返回检测结果列表
     """
-    try:
-        # 打开原始图像
-        img = Image.open(raw_asset.file)
-        
-        # 生成模拟的掩码图像（灰度图）
-        mask_img = img.convert('L')
-        mask_buffer = io.BytesIO()
-        mask_img.save(mask_buffer, format='PNG')
-        mask_buffer.seek(0)
-        
-        CaseAsset.objects.create(
-            case=case,
-            type='mask',
-            file=ContentFile(mask_buffer.read(), name='mask.png')
-        )
-        
-        # 生成模拟的标注图像（添加简单标记）
-        annotated_img = img.copy()
-        if annotated_img.mode != 'RGB':
-            annotated_img = annotated_img.convert('RGB')
-        
-        annotated_buffer = io.BytesIO()
-        annotated_img.save(annotated_buffer, format='PNG')
-        annotated_buffer.seek(0)
-        
-        CaseAsset.objects.create(
-            case=case,
-            type='annotated',
-            file=ContentFile(annotated_buffer.read(), name='annotated.png')
-        )
-        
-    except Exception as e:
-        print(f"Error generating mock assets: {e}")
+    # 打开原始图像 (PIL)
+    img_pil = Image.open(raw_asset.file)
+    
+    # 转为 OpenCV 格式 (BGR)
+    img_np = np.array(img_pil)
+    if img_pil.mode == 'RGB':
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+    elif img_pil.mode == 'RGBA':
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_RGBA2BGR)
+    else:
+        # 处理灰度等其他情况
+        img_cv = cv2.cvtColor(img_np, cv2.COLOR_GRAY2BGR)
+
+    # 1. 运行 YOLO 检测
+    detections, annotated_image_cv = run_yolo_detection(img_cv)
+    
+    # Saving Annotated Image
+    # encode to buffer
+    _, buffer = cv2.imencode('.jpg', annotated_image_cv)
+    annotated_io = io.BytesIO(buffer.tobytes())
+    
+    CaseAsset.objects.create(
+        case=case,
+        type='annotated',
+        file=ContentFile(annotated_io.read(), name='annotated.jpg')
+    )
+
+    # 2. 生成模拟的掩码图像（灰度图）- 暂时仍用模拟，直到 YOLO 返回掩码
+    # 此处简单做个灰度处理
+    mask_img = img_pil.convert('L')
+    mask_buffer = io.BytesIO()
+    mask_img.save(mask_buffer, format='PNG')
+    mask_buffer.seek(0)
+    
+    CaseAsset.objects.create(
+        case=case,
+        type='mask',
+        file=ContentFile(mask_buffer.read(), name='mask.png')
+    )
+    
+    return detections
 
 
 def start_pipeline_async(case_id: str, pipeline_run_id: int):

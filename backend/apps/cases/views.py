@@ -62,8 +62,8 @@ class CaseViewSet(viewsets.GenericViewSet):
         # 通知所有医生有新病例待审核
         notify_doctors_new_case(case)
         
-        # 返回数字格式的 case_id（前端期望）
-        return Response({'case_id': case.id.int if hasattr(case.id, 'int') else str(case.id)}, status=status.HTTP_201_CREATED)
+        # 返回字符串格式的 case_id (UUID)
+        return Response({'case_id': str(case.id)}, status=status.HTTP_201_CREATED)
     
     def retrieve(self, request, pk=None):
         """
