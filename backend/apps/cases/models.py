@@ -132,6 +132,7 @@ class Review(models.Model):
     DECISION_CHOICES = [
         ('approved', '通过'),
         ('rejected', '驳回'),
+        ('revise', '修订通过'),
     ]
     
     case = models.ForeignKey(

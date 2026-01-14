@@ -34,7 +34,12 @@ import {
     Eye,
     AlertCircle,
     ArrowLeft,
+    Plus,
+    Trash2,
+    Save,
+    Undo,
 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
 import type { CaseDetailResponse, ReviewDecision, Syndrome, Formula, AssetType } from '@/types'
 
 export default function ReviewPage() {
@@ -52,6 +57,7 @@ export default function ReviewPage() {
     const [editedSyndromes, setEditedSyndromes] = useState<Syndrome[]>([])
     const [editedFormulas, setEditedFormulas] = useState<Formula[]>([])
     const [selectedImage, setSelectedImage] = useState<string | null>(null)
+    const [isEditing, setIsEditing] = useState(false)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -107,6 +113,47 @@ export default function ReviewPage() {
             })
         } finally {
             setIsSubmitting(false)
+        }
+    }
+
+    // 编辑处理函数
+    const handleAddSyndrome = () => {
+        setEditedSyndromes([...editedSyndromes, { name: '', score: 0.5, description: '' }])
+    }
+
+    const handleRemoveSyndrome = (index: number) => {
+        const newSyndromes = [...editedSyndromes]
+        newSyndromes.splice(index, 1)
+        setEditedSyndromes(newSyndromes)
+    }
+
+    const handleUpdateSyndrome = (index: number, field: keyof Syndrome, value: any) => {
+        const newSyndromes = [...editedSyndromes]
+        newSyndromes[index] = { ...newSyndromes[index], [field]: value }
+        setEditedSyndromes(newSyndromes)
+    }
+
+    const handleAddFormula = () => {
+        setEditedFormulas([...editedFormulas, { name: '', score: 0.5, indication: '' }])
+    }
+
+    const handleRemoveFormula = (index: number) => {
+        const newFormulas = [...editedFormulas]
+        newFormulas.splice(index, 1)
+        setEditedFormulas(newFormulas)
+    }
+
+    const handleUpdateFormula = (index: number, field: keyof Formula, value: any) => {
+        const newFormulas = [...editedFormulas]
+        newFormulas[index] = { ...newFormulas[index], [field]: value }
+        setEditedFormulas(newFormulas)
+    }
+
+    const toggleEditMode = () => {
+        if (isEditing) {
+            setIsEditing(false)
+        } else {
+            setIsEditing(true)
         }
     }
 
@@ -349,17 +396,66 @@ export default function ReviewPage() {
                                     <div className="space-y-3">
                                         {editedSyndromes.map((syndrome, index) => (
                                             <div key={index} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                        {syndrome.name}
-                                                    </span>
-                                                    <span className="text-sm text-emerald-600 dark:text-emerald-400">
-                                                        {Math.round(syndrome.score * 100)}%
-                                                    </span>
-                                                </div>
-                                                <Progress value={syndrome.score * 100} className="h-1.5" />
+                                                {isEditing ? (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Input
+                                                                value={syndrome.name}
+                                                                onChange={(e) => handleUpdateSyndrome(index, 'name', e.target.value)}
+                                                                placeholder="证候名称"
+                                                                className="h-8"
+                                                            />
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                onClick={() => handleRemoveSyndrome(index)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-slate-500 w-12">置信度</span>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="1"
+                                                                step="0.01"
+                                                                value={syndrome.score}
+                                                                onChange={(e) => handleUpdateSyndrome(index, 'score', parseFloat(e.target.value))}
+                                                                className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                                            />
+                                                            <span className="text-xs text-slate-500 w-8 text-right">
+                                                                {Math.round(syndrome.score * 100)}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                                                                {syndrome.name}
+                                                            </span>
+                                                            <span className="text-sm text-emerald-600 dark:text-emerald-400">
+                                                                {Math.round(syndrome.score * 100)}%
+                                                            </span>
+                                                        </div>
+                                                        <Progress value={syndrome.score * 100} className="h-1.5" />
+                                                    </>
+                                                )}
                                             </div>
                                         ))}
+                                        {isEditing && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full border-dashed"
+                                                onClick={handleAddSyndrome}
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                添加证候
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -375,21 +471,61 @@ export default function ReviewPage() {
                                                 key={index}
                                                 className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                        {formula.name}
-                                                    </span>
-                                                    <Badge variant="default" className="text-xs">
-                                                        {Math.round(formula.score * 100)}%
-                                                    </Badge>
-                                                </div>
-                                                {formula.indication && (
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                                        {formula.indication}
-                                                    </p>
+                                                {isEditing ? (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Input
+                                                                value={formula.name}
+                                                                onChange={(e) => handleUpdateFormula(index, 'name', e.target.value)}
+                                                                placeholder="方剂名称"
+                                                                className="h-8"
+                                                            />
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                                                onClick={() => handleRemoveFormula(index)}
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </div>
+                                                        <Input
+                                                            value={formula.indication || ''}
+                                                            onChange={(e) => handleUpdateFormula(index, 'indication', e.target.value)}
+                                                            placeholder="主治/适应症"
+                                                            className="h-8 text-xs"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="font-medium text-slate-900 dark:text-slate-100">
+                                                                {formula.name}
+                                                            </span>
+                                                            <Badge variant="default" className="text-xs">
+                                                                {Math.round(formula.score * 100)}%
+                                                            </Badge>
+                                                        </div>
+                                                        {formula.indication && (
+                                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                                                {formula.indication}
+                                                            </p>
+                                                        )}
+                                                    </>
                                                 )}
                                             </div>
                                         ))}
+                                        {isEditing && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full border-dashed"
+                                                onClick={handleAddFormula}
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" />
+                                                添加方剂
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -407,36 +543,63 @@ export default function ReviewPage() {
 
                                 {/* 审核按钮 */}
                                 <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    <Button
-                                        className="w-full"
-                                        onClick={() => handleSubmitReview('approve')}
-                                        disabled={isSubmitting}
-                                    >
-                                        {isSubmitting ? (
-                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                        ) : (
-                                            <Check className="w-4 h-4 mr-2" />
-                                        )}
-                                        通过审核
-                                    </Button>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => handleSubmitReview('revise')}
-                                            disabled={isSubmitting}
-                                        >
-                                            <Edit3 className="w-4 h-4 mr-1" />
-                                            修订通过
-                                        </Button>
-                                        <Button
-                                            variant="destructive"
-                                            onClick={() => handleSubmitReview('reject')}
-                                            disabled={isSubmitting}
-                                        >
-                                            <X className="w-4 h-4 mr-1" />
-                                            驳回
-                                        </Button>
-                                    </div>
+                                    {isEditing ? (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Button
+                                                className="bg-emerald-600 hover:bg-emerald-700"
+                                                onClick={() => handleSubmitReview('revise')}
+                                                disabled={isSubmitting}
+                                            >
+                                                {isSubmitting ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                ) : (
+                                                    <Save className="w-4 h-4 mr-2" />
+                                                )}
+                                                确认修订
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                onClick={toggleEditMode}
+                                                disabled={isSubmitting}
+                                            >
+                                                <Undo className="w-4 h-4 mr-2" />
+                                                取消编辑
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Button
+                                                className="w-full"
+                                                onClick={() => handleSubmitReview('approve')}
+                                                disabled={isSubmitting}
+                                            >
+                                                {isSubmitting ? (
+                                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                                ) : (
+                                                    <Check className="w-4 h-4 mr-2" />
+                                                )}
+                                                通过审核
+                                            </Button>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={toggleEditMode}
+                                                    disabled={isSubmitting}
+                                                >
+                                                    <Edit3 className="w-4 h-4 mr-1" />
+                                                    修订结果
+                                                </Button>
+                                                <Button
+                                                    variant="destructive"
+                                                    onClick={() => handleSubmitReview('reject')}
+                                                    disabled={isSubmitting}
+                                                >
+                                                    <X className="w-4 h-4 mr-1" />
+                                                    驳回
+                                                </Button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </>
                         ) : (

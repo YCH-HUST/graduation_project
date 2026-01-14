@@ -283,6 +283,8 @@ class ReviewCreateSerializer(serializers.Serializer):
         """统一转换为后端格式"""
         if value == 'approve':
             return 'approved'
-        if value in ['reject', 'revise']:
+        if value == 'reject':
             return 'rejected'
+        if value == 'revise':
+            return 'revise'
         return value

@@ -199,11 +199,18 @@ class CaseViewSet(viewsets.GenericViewSet):
         )
         
         # 更新病例状态
-        case.status = decision
+        final_status = decision
+        if decision == 'revise':
+            final_status = 'approved'
+            
+        case.status = final_status
         case.save()
         
         # 记录审计日志
-        action_type = 'review_approve' if decision == 'approved' else 'review_reject'
+        if decision in ['approved', 'revise']:
+            action_type = 'review_approve'
+        else:
+            action_type = 'review_reject'
         log_action(user=request.user, action=action_type, case=case)
         
         # 通知患者审核结果
