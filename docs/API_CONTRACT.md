@@ -332,9 +332,66 @@ Content-Type: application/json
 
 ---
 
-## 3. 管理员接口
+## 3. YOLO 舌象检测接口
 
-### 3.1 健康检查
+### 3.1 舌象检测
+
+```
+POST /api/yolo/detect/
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+```
+
+**请求体 (FormData)**
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| image | File | ✅ | 舌象图片 (JPG/PNG) |
+
+**成功响应** `200 OK`
+```json
+{
+  "success": true,
+  "detections": [
+    {
+      "class_id": 3,
+      "class_name": "红舌黄厚腻苔",
+      "confidence": 0.85,
+      "bbox": [100, 50, 400, 350]
+    },
+    {
+      "class_id": 0,
+      "class_name": "黑苔",
+      "confidence": 0.72,
+      "bbox": [120, 80, 380, 320]
+    }
+  ],
+  "annotated_image": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+}
+```
+
+**类别映射**
+| class_id | class_name |
+|----------|------------|
+| 0 | 黑苔 |
+| 1 | 地图舌 |
+| 2 | 紫苔 |
+| 3 | 红舌黄厚腻苔 |
+| 4 | 红舌厚腻苔 |
+| 5 | 白舌厚腻苔 |
+
+**失败响应** `400 Bad Request`
+```json
+{
+  "success": false,
+  "detail": "请上传图片"
+}
+```
+
+---
+
+## 4. 管理员接口
+
+### 4.1 健康检查
 
 ```
 GET /api/admin/health/

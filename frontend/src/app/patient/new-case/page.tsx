@@ -2,7 +2,7 @@
 
 /**
  * 新建病例页面
- * 流程: 选择科室 → 选择医生 → 上传舌象 + 填写问诊 → 提交
+ * 流程: 选择科室 → 选择医生 → 上传舌象 + 填写问诊 → YOLO检测 → 提交
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,18 +11,21 @@ import { QuestionnaireForm } from '@/components/case/QuestionnaireForm'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 import { createCase, runPipeline, getPipelineStatus } from '@/api/cases'
 import { getDoctors, DEPARTMENTS, Doctor } from '@/api/doctors'
+import { detectTongue, YoloDetection } from '@/api/yolo'
 import { useCaseStore } from '@/store/case'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
     Loader2, Send, Activity, CheckCircle2, AlertCircle,
-    ArrowLeft, ArrowRight, User, Building2, Award, Calendar
+    ArrowLeft, ArrowRight, User, Building2, Award, Calendar,
+    Search, RotateCcw, Eye
 } from 'lucide-react'
 import type { QuestionnaireData } from '@/types'
 
-type PageState = 'select_department' | 'select_doctor' | 'form' | 'submitting' | 'processing' | 'success' | 'error'
+type PageState = 'select_department' | 'select_doctor' | 'form' | 'detecting' | 'detected' | 'submitting' | 'processing' | 'success' | 'error'
 
 export default function NewCasePage() {
     const router = useRouter()
@@ -52,6 +55,12 @@ export default function NewCasePage() {
         image?: string
         questionnaire?: Partial<Record<keyof QuestionnaireData, string>>
     }>({})
+
+    // YOLO 检测结果
+    const [detections, setDetections] = useState<YoloDetection[]>([])
+    const [annotatedImage, setAnnotatedImage] = useState<string>('')
+
+    // 流水线状态
     const [caseId, setCaseId] = useState<number | null>(null)
     const [progress, setProgress] = useState(0)
     const [currentStage, setCurrentStage] = useState('')
@@ -107,6 +116,13 @@ export default function NewCasePage() {
         setPageState('select_doctor')
     }
 
+    // 返回表单
+    const handleBackToForm = () => {
+        setPageState('form')
+        setDetections([])
+        setAnnotatedImage('')
+    }
+
     // 表单校验
     const validate = (): boolean => {
         const newErrors: typeof errors = {}
@@ -129,6 +145,44 @@ export default function NewCasePage() {
 
         setErrors(newErrors)
         return Object.keys(newErrors).length === 0
+    }
+
+    // 执行 YOLO 检测
+    const handleDetect = async () => {
+        if (!validate()) {
+            toast.error('请完善必填信息')
+            return
+        }
+
+        setPageState('detecting')
+
+        try {
+            const result = await detectTongue(image!)
+
+            if (result.success) {
+                setDetections(result.detections)
+                setAnnotatedImage(result.annotated_image)
+                setPageState('detected')
+
+                if (result.detections.length > 0) {
+                    toast.success('检测完成', {
+                        description: `检测到 ${result.detections.length} 个目标`,
+                    })
+                } else {
+                    toast.info('检测完成', {
+                        description: '未检测到舌象特征',
+                    })
+                }
+            } else {
+                throw new Error(result.detail || '检测失败')
+            }
+        } catch (error: any) {
+            console.error('Detection error:', error)
+            setPageState('form')
+            toast.error('检测失败', {
+                description: error.message || '请重试',
+            })
+        }
     }
 
     // 轮询流水线状态
@@ -180,13 +234,8 @@ export default function NewCasePage() {
         poll()
     }, [router, setPolling, updatePipelineStatus])
 
-    // 提交表单
-    const handleSubmit = async () => {
-        if (!validate()) {
-            toast.error('请完善必填信息')
-            return
-        }
-
+    // 提交表单（完成检测后提交）
+    const handleSubmitCase = async () => {
         setPageState('submitting')
 
         try {
@@ -234,6 +283,8 @@ export default function NewCasePage() {
             additional_notes: '',
         })
         setErrors({})
+        setDetections([])
+        setAnnotatedImage('')
         setCaseId(null)
         setProgress(0)
         setCurrentStage('')
@@ -251,6 +302,175 @@ export default function NewCasePage() {
             completed: '处理完成',
         }
         return stageMap[stage] || '处理中'
+    }
+
+    // 获取检测类别颜色
+    const getClassColor = (classId: number): string => {
+        const colors: Record<number, string> = {
+            0: 'bg-gray-700',     // 黑苔
+            1: 'bg-orange-500',   // 地图舌
+            2: 'bg-purple-600',   // 紫苔
+            3: 'bg-yellow-500',   // 红舌黄厚腻苔
+            4: 'bg-red-500',      // 红舌厚腻苔
+            5: 'bg-slate-200',    // 白舌厚腻苔
+        }
+        return colors[classId] || 'bg-blue-500'
+    }
+
+    // ========== 渲染检测中状态 ==========
+    if (pageState === 'detecting') {
+        return (
+            <div className="max-w-2xl mx-auto">
+                <Card>
+                    <CardHeader className="text-center">
+                        <div className="flex justify-center mb-4">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
+                                <Search className="w-10 h-10 text-emerald-500 animate-pulse" />
+                            </div>
+                        </div>
+                        <CardTitle className="text-2xl">正在检测舌象</CardTitle>
+                        <CardDescription>
+                            AI 正在分析您的舌象图片，请稍候...
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex justify-center">
+                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    // ========== 渲染检测结果 ==========
+    if (pageState === 'detected') {
+        return (
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* 页面标题 */}
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={handleBackToForm}>
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        返回修改
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
+                            舌象检测结果
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">
+                            AI 已完成舌象分析，请查看检测结果
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* 标注后的图片 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Eye className="w-5 h-5 text-emerald-500" />
+                                标注结果
+                            </CardTitle>
+                            <CardDescription>
+                                检测到的舌象特征已用矩形框标注
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {annotatedImage ? (
+                                <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                                    <img
+                                        src={annotatedImage}
+                                        alt="标注后的舌象图片"
+                                        className="w-full h-auto"
+                                    />
+                                </div>
+                            ) : (
+                                <div className="aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+                                    <p className="text-slate-500">无标注图片</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* 检测结果列表 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Activity className="w-5 h-5 text-emerald-500" />
+                                检测详情
+                            </CardTitle>
+                            <CardDescription>
+                                共检测到 {detections.length} 个目标
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {detections.length > 0 ? (
+                                <div className="space-y-3">
+                                    {detections.map((det, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-4 h-4 rounded-full",
+                                                    getClassColor(det.class_id)
+                                                )} />
+                                                <div>
+                                                    <p className="font-medium text-slate-900 dark:text-slate-100">
+                                                        {det.class_name}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                        类别 ID: {det.class_id}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Badge variant={det.confidence > 0.8 ? 'success' : det.confidence > 0.5 ? 'warning' : 'secondary'}>
+                                                {(det.confidence * 100).toFixed(1)}%
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <AlertCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                                        未检测到特征
+                                    </h3>
+                                    <p className="text-slate-500 dark:text-slate-400 text-sm">
+                                        未能在图片中检测到舌象特征，请检查图片质量后重新上传
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* 操作按钮 */}
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleBackToForm}
+                            >
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                重新检测
+                            </Button>
+                            <Button
+                                className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                                onClick={handleSubmitCase}
+                            >
+                                <Send className="w-4 h-4 mr-2" />
+                                确认提交病例
+                            </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-3">
+                            确认提交后将进行完整的智能诊断分析
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+        )
     }
 
     // ========== 渲染科室选择 ==========
@@ -406,7 +626,7 @@ export default function NewCasePage() {
     }
 
     // ========== 渲染处理中状态 ==========
-    if (pageState === 'processing' || pageState === 'success') {
+    if (pageState === 'submitting' || pageState === 'processing' || pageState === 'success') {
         return (
             <div className="max-w-2xl mx-auto">
                 <Card>
@@ -423,12 +643,14 @@ export default function NewCasePage() {
                             )}
                         </div>
                         <CardTitle className="text-2xl">
-                            {pageState === 'success' ? '诊断完成' : '正在分析中'}
+                            {pageState === 'success' ? '诊断完成' : pageState === 'submitting' ? '正在提交' : '正在分析中'}
                         </CardTitle>
                         <CardDescription>
                             {pageState === 'success'
                                 ? '正在跳转到结果页面...'
-                                : '请稍候，AI 正在分析您的舌象数据'}
+                                : pageState === 'submitting'
+                                    ? '正在创建病例...'
+                                    : '请稍候，AI 正在分析您的舌象数据'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
@@ -598,9 +820,9 @@ export default function NewCasePage() {
                 <Card className="lg:col-span-1">
                     <CardContent className="pt-6">
                         <Button
-                            className="w-full"
+                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
                             size="lg"
-                            onClick={handleSubmit}
+                            onClick={handleDetect}
                             disabled={pageState === 'submitting'}
                         >
                             {pageState === 'submitting' ? (
@@ -610,13 +832,13 @@ export default function NewCasePage() {
                                 </>
                             ) : (
                                 <>
-                                    <Send className="w-4 h-4" />
+                                    <Search className="w-4 h-4" />
                                     提交并开始分析
                                 </>
                             )}
                         </Button>
                         <p className="text-xs text-slate-500 dark:text-slate-400 text-center mt-3">
-                            提交后将自动进行 AI 分析，预计需要 30-60 秒
+                            提交后将先进行舌象检测，再进行完整诊断分析
                         </p>
                     </CardContent>
                 </Card>
