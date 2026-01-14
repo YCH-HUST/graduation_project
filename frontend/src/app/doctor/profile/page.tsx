@@ -35,6 +35,7 @@ export default function DoctorProfilePage() {
         full_name: '',
         email: '',
         hospital: '',
+        department: '',
         job_title: '',
         years_of_experience: undefined,
         gender: '',
@@ -53,6 +54,7 @@ export default function DoctorProfilePage() {
                 full_name: profile.full_name || '',
                 email: profile.email || '',
                 hospital: profile.hospital || '',
+                department: profile.department || '',
                 job_title: profile.job_title || '',
                 years_of_experience: profile.years_of_experience,
                 gender: profile.gender || '',
@@ -186,6 +188,27 @@ export default function DoctorProfilePage() {
                                 onChange={(e) => handleInputChange('hospital', e.target.value)}
                                 placeholder="请输入所属医院名称"
                             />
+                        </div>
+
+                        {/* 科室 */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                <Award className="w-4 h-4" />
+                                科室
+                            </label>
+                            <select
+                                value={formData.department || ''}
+                                onChange={(e) => handleInputChange('department', e.target.value)}
+                                className="w-full h-10 px-3 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors"
+                            >
+                                <option value="">请选择科室</option>
+                                <option value="internal">内科</option>
+                                <option value="surgery">外科</option>
+                                <option value="gynecology">妇科</option>
+                                <option value="pediatrics">儿科</option>
+                                <option value="orthopedics">骨伤科</option>
+                                <option value="ent">耳鼻喉科</option>
+                            </select>
                         </div>
 
                         {/* 职称 */}

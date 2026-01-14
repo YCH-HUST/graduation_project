@@ -35,6 +35,14 @@ class Case(models.Model):
         related_name='cases',
         verbose_name='患者'
     )
+    assigned_doctor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_cases',
+        verbose_name='主诊医生'
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,

@@ -2,10 +2,7 @@
 
 /**
  * 新建病例页面
- * - 上传舌象图片
- * - 填写问诊表单
- * - 提交并触发流水线
- * - 轮询等待结果
+ * 流程: 选择科室 → 选择医生 → 上传舌象 + 填写问诊 → 提交
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -15,18 +12,31 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { createCase, runPipeline, getPipelineStatus } from '@/api/cases'
+import { getDoctors, DEPARTMENTS, Doctor } from '@/api/doctors'
 import { useCaseStore } from '@/store/case'
 import { toast } from 'sonner'
-import { Loader2, Send, Activity, CheckCircle2, AlertCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+    Loader2, Send, Activity, CheckCircle2, AlertCircle,
+    ArrowLeft, ArrowRight, User, Building2, Award, Calendar
+} from 'lucide-react'
 import type { QuestionnaireData } from '@/types'
 
-type PageState = 'form' | 'submitting' | 'processing' | 'success' | 'error'
+type PageState = 'select_department' | 'select_doctor' | 'form' | 'submitting' | 'processing' | 'success' | 'error'
 
 export default function NewCasePage() {
     const router = useRouter()
     const { updatePipelineStatus, setPolling, isPolling } = useCaseStore()
 
-    const [pageState, setPageState] = useState<PageState>('form')
+    const [pageState, setPageState] = useState<PageState>('select_department')
+
+    // 科室和医生选择
+    const [selectedDepartment, setSelectedDepartment] = useState<string>('')
+    const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
+    const [doctors, setDoctors] = useState<Doctor[]>([])
+    const [loadingDoctors, setLoadingDoctors] = useState(false)
+
+    // 表单数据
     const [image, setImage] = useState<File | null>(null)
     const [questionnaire, setQuestionnaire] = useState<QuestionnaireData>({
         chief_complaint: '',
@@ -46,6 +56,56 @@ export default function NewCasePage() {
     const [progress, setProgress] = useState(0)
     const [currentStage, setCurrentStage] = useState('')
     const [errorMessage, setErrorMessage] = useState('')
+
+    // 加载医生列表
+    useEffect(() => {
+        if (selectedDepartment && pageState === 'select_doctor') {
+            loadDoctors(selectedDepartment)
+        }
+    }, [selectedDepartment, pageState])
+
+    const loadDoctors = async (department: string) => {
+        setLoadingDoctors(true)
+        try {
+            const response = await getDoctors(department)
+            setDoctors(response.doctors)
+        } catch (err) {
+            console.error('Load doctors error:', err)
+            toast.error('加载医生列表失败')
+        } finally {
+            setLoadingDoctors(false)
+        }
+    }
+
+    // 选择科室
+    const handleSelectDepartment = (departmentKey: string) => {
+        setSelectedDepartment(departmentKey)
+        setSelectedDoctor(null)
+        setPageState('select_doctor')
+    }
+
+    // 选择医生
+    const handleSelectDoctor = (doctor: Doctor) => {
+        setSelectedDoctor(doctor)
+    }
+
+    // 确认医生进入表单
+    const handleConfirmDoctor = () => {
+        if (selectedDoctor) {
+            setPageState('form')
+        }
+    }
+
+    // 返回科室选择
+    const handleBackToDepartment = () => {
+        setPageState('select_department')
+        setSelectedDoctor(null)
+    }
+
+    // 返回医生选择
+    const handleBackToDoctor = () => {
+        setPageState('select_doctor')
+    }
 
     // 表单校验
     const validate = (): boolean => {
@@ -75,7 +135,7 @@ export default function NewCasePage() {
     const pollPipelineStatus = useCallback(async (id: number) => {
         setPolling(true)
 
-        const maxAttempts = 60 // 最多轮询 2 分钟 (60 * 2s)
+        const maxAttempts = 60
         let attempts = 0
 
         const poll = async () => {
@@ -130,8 +190,8 @@ export default function NewCasePage() {
         setPageState('submitting')
 
         try {
-            // 1. 创建病例
-            const createResponse = await createCase(image!, questionnaire)
+            // 1. 创建病例（包含医生ID）
+            const createResponse = await createCase(image!, questionnaire, selectedDoctor?.id)
             const newCaseId = createResponse.case_id
             setCaseId(newCaseId)
 
@@ -158,7 +218,10 @@ export default function NewCasePage() {
 
     // 重置表单
     const handleReset = () => {
-        setPageState('form')
+        setPageState('select_department')
+        setSelectedDepartment('')
+        setSelectedDoctor(null)
+        setDoctors([])
         setImage(null)
         setQuestionnaire({
             chief_complaint: '',
@@ -190,7 +253,159 @@ export default function NewCasePage() {
         return stageMap[stage] || '处理中'
     }
 
-    // 渲染处理中状态
+    // ========== 渲染科室选择 ==========
+    if (pageState === 'select_department') {
+        return (
+            <div className="max-w-4xl mx-auto space-y-6">
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
+                        新建病例
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-2">
+                        第一步：请选择就诊科室
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {DEPARTMENTS.map((dept) => (
+                        <Card
+                            key={dept.key}
+                            className={cn(
+                                "cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600",
+                                selectedDepartment === dept.key && "border-blue-500 ring-2 ring-blue-500/20"
+                            )}
+                            onClick={() => handleSelectDepartment(dept.key)}
+                        >
+                            <CardContent className="pt-6">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-2xl shadow-lg">
+                                        {dept.icon}
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                            {dept.name}
+                                        </h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                            {dept.description}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
+    // ========== 渲染医生选择 ==========
+    if (pageState === 'select_doctor') {
+        const selectedDept = DEPARTMENTS.find(d => d.key === selectedDepartment)
+
+        return (
+            <div className="max-w-4xl mx-auto space-y-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="sm" onClick={handleBackToDepartment}>
+                        <ArrowLeft className="w-4 h-4 mr-1" />
+                        返回
+                    </Button>
+                    <div>
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
+                            选择医生
+                        </h1>
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">
+                            {selectedDept?.name} - {selectedDept?.description}
+                        </p>
+                    </div>
+                </div>
+
+                {loadingDoctors ? (
+                    <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                    </div>
+                ) : doctors.length === 0 ? (
+                    <Card>
+                        <CardContent className="py-12 text-center">
+                            <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
+                                暂无医生
+                            </h3>
+                            <p className="text-slate-500 dark:text-slate-400">
+                                该科室暂无注册医生，请选择其他科室
+                            </p>
+                            <Button className="mt-4" variant="outline" onClick={handleBackToDepartment}>
+                                重新选择科室
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {doctors.map((doctor) => (
+                                <Card
+                                    key={doctor.id}
+                                    className={cn(
+                                        "cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600",
+                                        selectedDoctor?.id === doctor.id && "border-blue-500 ring-2 ring-blue-500/20"
+                                    )}
+                                    onClick={() => handleSelectDoctor(doctor)}
+                                >
+                                    <CardContent className="pt-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                                                {doctor.full_name?.charAt(0) || doctor.username.charAt(0)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                                                    {doctor.full_name || doctor.username}
+                                                </h3>
+                                                <div className="flex flex-wrap gap-2 mt-2">
+                                                    {doctor.job_title && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs">
+                                                            <Award className="w-3 h-3" />
+                                                            {doctor.job_title}
+                                                        </span>
+                                                    )}
+                                                    {doctor.years_of_experience && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs">
+                                                            <Calendar className="w-3 h-3" />
+                                                            {doctor.years_of_experience}年经验
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {doctor.hospital && (
+                                                    <p className="flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 mt-2 truncate">
+                                                        <Building2 className="w-3 h-3 flex-shrink-0" />
+                                                        {doctor.hospital}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            {selectedDoctor?.id === doctor.id && (
+                                                <CheckCircle2 className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Button
+                                size="lg"
+                                disabled={!selectedDoctor}
+                                onClick={handleConfirmDoctor}
+                            >
+                                下一步
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                            </Button>
+                        </div>
+                    </>
+                )}
+            </div>
+        )
+    }
+
+    // ========== 渲染处理中状态 ==========
     if (pageState === 'processing' || pageState === 'success') {
         return (
             <div className="max-w-2xl mx-auto">
@@ -227,7 +442,6 @@ export default function NewCasePage() {
                             <Progress value={progress} className="h-3" />
                         </div>
 
-                        {/* 处理步骤指示 */}
                         <div className="grid grid-cols-5 gap-2">
                             {['preprocessing', 'segmentation', 'feature_extraction', 'diagnosis', 'postprocessing'].map((stage, index) => {
                                 const stageProgress = (index + 1) * 20
@@ -238,18 +452,18 @@ export default function NewCasePage() {
                                     <div
                                         key={stage}
                                         className={`text-center p-2 rounded-lg transition-all ${isActive
-                                                ? 'bg-emerald-100 dark:bg-emerald-900/50'
-                                                : isCompleted
-                                                    ? 'bg-emerald-50 dark:bg-emerald-950/50'
-                                                    : 'bg-slate-50 dark:bg-slate-800'
+                                            ? 'bg-emerald-100 dark:bg-emerald-900/50'
+                                            : isCompleted
+                                                ? 'bg-emerald-50 dark:bg-emerald-950/50'
+                                                : 'bg-slate-50 dark:bg-slate-800'
                                             }`}
                                     >
                                         <div
                                             className={`w-6 h-6 mx-auto rounded-full flex items-center justify-center text-xs font-medium ${isCompleted
-                                                    ? 'bg-emerald-500 text-white'
-                                                    : isActive
-                                                        ? 'bg-emerald-100 text-emerald-600 animate-pulse'
-                                                        : 'bg-slate-200 text-slate-400 dark:bg-slate-700'
+                                                ? 'bg-emerald-500 text-white'
+                                                : isActive
+                                                    ? 'bg-emerald-100 text-emerald-600 animate-pulse'
+                                                    : 'bg-slate-200 text-slate-400 dark:bg-slate-700'
                                                 }`}
                                         >
                                             {isCompleted ? '✓' : index + 1}
@@ -267,7 +481,7 @@ export default function NewCasePage() {
         )
     }
 
-    // 渲染错误状态
+    // ========== 渲染错误状态 ==========
     if (pageState === 'error') {
         return (
             <div className="max-w-2xl mx-auto">
@@ -296,18 +510,46 @@ export default function NewCasePage() {
         )
     }
 
-    // 渲染表单
+    // ========== 渲染表单（上传+问诊） ==========
+    const selectedDept = DEPARTMENTS.find(d => d.key === selectedDepartment)
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             {/* 页面标题 */}
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
-                    新建病例
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-2">
-                    请上传舌象图片并填写问诊信息，系统将进行智能分析
-                </p>
+            <div className="flex items-center gap-4">
+                <Button variant="ghost" size="sm" onClick={handleBackToDoctor}>
+                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    返回
+                </Button>
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
+                        填写病例信息
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">
+                        {selectedDept?.name} · {selectedDoctor?.full_name || selectedDoctor?.username}
+                    </p>
+                </div>
             </div>
+
+            {/* 已选医生信息卡片 */}
+            {selectedDoctor && (
+                <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <CardContent className="py-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold text-lg">
+                                {selectedDoctor.full_name?.charAt(0) || selectedDoctor.username.charAt(0)}
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm text-blue-600 dark:text-blue-400">主诊医生</p>
+                                <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                    {selectedDoctor.full_name || selectedDoctor.username}
+                                    {selectedDoctor.job_title && ` · ${selectedDoctor.job_title}`}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* 舌象上传 */}

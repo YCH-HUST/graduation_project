@@ -46,6 +46,25 @@ class User(AbstractUser):
         default='',
         verbose_name='职称'
     )
+    
+    # 科室选项
+    DEPARTMENT_CHOICES = [
+        ('internal', '内科'),
+        ('surgery', '外科'),
+        ('gynecology', '妇科'),
+        ('pediatrics', '儿科'),
+        ('orthopedics', '骨伤科'),
+        ('ent', '耳鼻喉科'),
+    ]
+    
+    department = models.CharField(
+        max_length=20,
+        choices=DEPARTMENT_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='科室'
+    )
+    
     years_of_experience = models.PositiveIntegerField(
         null=True,
         blank=True,

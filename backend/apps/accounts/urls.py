@@ -5,6 +5,7 @@ from django.urls import path
 from .views import LoginView, RegisterView, ProfileView, RecentPatientsView
 from .patient_views import PatientListCreateView, PatientDetailView
 from .statistics_views import DoctorStatisticsView
+from .doctor_views import DoctorListView
 
 urlpatterns = [
     # 带斜杠的路由
@@ -29,4 +30,7 @@ profile_urlpatterns = [
     # 统计 API
     path('doctor/statistics/', DoctorStatisticsView.as_view(), name='doctor_statistics'),
     path('doctor/statistics', DoctorStatisticsView.as_view(), name='doctor_statistics_no_slash'),
+    # 医生列表 API
+    path('doctors/', DoctorListView.as_view(), name='doctor_list'),
+    path('doctors', DoctorListView.as_view(), name='doctor_list_no_slash'),
 ]

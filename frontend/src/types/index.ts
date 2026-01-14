@@ -13,6 +13,7 @@ export interface User {
   full_name?: string;
   // 医生个人资料字段
   hospital?: string;
+  department?: string;
   job_title?: string;
   years_of_experience?: number;
   gender?: 'male' | 'female' | '';

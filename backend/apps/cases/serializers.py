@@ -48,6 +48,8 @@ class CaseCreateSerializer(serializers.Serializer):
     questionnaire = serializers.CharField(required=False, allow_blank=True, default='{}')
     questionnaire_json = serializers.CharField(required=False, allow_blank=True, default='{}')
     chief_complaint_text = serializers.CharField(required=False, allow_blank=True, default='')
+    # 医生ID（可选）
+    doctor_id = serializers.IntegerField(required=False, allow_null=True)
     
     def validate(self, attrs):
         # 兼容两种字段名
@@ -73,9 +75,21 @@ class CaseCreateSerializer(serializers.Serializer):
         except json.JSONDecodeError:
             raise serializers.ValidationError('问诊问卷必须是有效的 JSON 格式')
     
+    def validate_doctor_id(self, value):
+        """验证医生ID"""
+        if value:
+            from apps.accounts.models import User
+            try:
+                doctor = User.objects.get(id=value, role='doctor')
+                return doctor
+            except User.DoesNotExist:
+                raise serializers.ValidationError('指定的医生不存在')
+        return None
+    
     def create(self, validated_data):
         user = self.context['request'].user
         image = validated_data.get('image')
+        doctor = validated_data.get('doctor_id')  # 已经是 User 对象或 None
         
         # 优先使用 questionnaire，其次使用 questionnaire_json
         questionnaire = validated_data.get('questionnaire') or validated_data.get('questionnaire_json') or {}
@@ -93,6 +107,7 @@ class CaseCreateSerializer(serializers.Serializer):
         # 创建病例
         case = Case.objects.create(
             patient=user,
+            assigned_doctor=doctor,
             status='draft',
             chief_complaint_text=chief_complaint,
             questionnaire_json=questionnaire

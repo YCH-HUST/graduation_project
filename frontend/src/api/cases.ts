@@ -24,10 +24,12 @@ import type {
 
 /**
  * 创建病例（上传舌象 + 问诊数据）
+ * @param doctorId 可选，指定主诊医生ID
  */
 export async function createCase(
     image: File,
-    questionnaire: QuestionnaireData
+    questionnaire: QuestionnaireData,
+    doctorId?: number
 ): Promise<CreateCaseResponse> {
     if (isMockMode()) {
         await delay(1000)
@@ -37,6 +39,9 @@ export async function createCase(
     const formData = new FormData()
     formData.append('tongue_image', image)
     formData.append('questionnaire', JSON.stringify(questionnaire))
+    if (doctorId) {
+        formData.append('doctor_id', doctorId.toString())
+    }
 
     const response = await apiClient.post<CreateCaseResponse>('/api/cases/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

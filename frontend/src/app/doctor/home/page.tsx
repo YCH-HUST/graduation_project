@@ -81,6 +81,19 @@ export default function DoctorHomePage() {
         return '未设置'
     }
 
+    // 获取科室显示文本
+    const getDepartmentText = (department?: string) => {
+        const departmentMap: Record<string, string> = {
+            'internal': '内科',
+            'surgery': '外科',
+            'gynecology': '妇科',
+            'pediatrics': '儿科',
+            'orthopedics': '骨伤科',
+            'ent': '耳鼻喉科',
+        }
+        return department ? (departmentMap[department] || department) : '未设置'
+    }
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -133,7 +146,7 @@ export default function DoctorHomePage() {
                     </div>
 
                     {/* 信息卡片区域 */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
                             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
                                 <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -142,6 +155,18 @@ export default function DoctorHomePage() {
                                 <p className="text-xs text-slate-500 dark:text-slate-400">所属医院</p>
                                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
                                     {profile?.hospital || '未设置'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                            <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center shrink-0">
+                                <Award className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-xs text-slate-500 dark:text-slate-400">科室</p>
+                                <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                                    {getDepartmentText(profile?.department)}
                                 </p>
                             </div>
                         </div>

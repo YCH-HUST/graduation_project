@@ -26,6 +26,7 @@ export interface ProfileUpdateRequest {
     full_name?: string
     email?: string
     hospital?: string
+    department?: string
     job_title?: string
     years_of_experience?: number
     gender?: 'male' | 'female' | ''

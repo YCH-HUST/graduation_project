@@ -13,8 +13,32 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'username', 'email', 'full_name', 'role',
-            'hospital', 'job_title', 'years_of_experience', 'gender', 'age'
+            'hospital', 'department', 'job_title', 'years_of_experience', 'gender', 'age'
         ]
+
+
+class DoctorListSerializer(serializers.ModelSerializer):
+    """医生列表序列化器"""
+    department_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'full_name', 'hospital', 
+            'department', 'department_display', 'job_title', 'years_of_experience'
+        ]
+    
+    def get_department_display(self, obj):
+        """获取科室中文名称"""
+        department_map = {
+            'internal': '内科',
+            'surgery': '外科',
+            'gynecology': '妇科',
+            'pediatrics': '儿科',
+            'orthopedics': '骨伤科',
+            'ent': '耳鼻喉科',
+        }
+        return department_map.get(obj.department, obj.department) if obj.department else ''
 
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -23,13 +47,14 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'full_name', 'email', 'hospital', 'job_title',
+            'full_name', 'email', 'hospital', 'department', 'job_title',
             'years_of_experience', 'gender', 'age'
         ]
         extra_kwargs = {
             'full_name': {'required': False},
             'email': {'required': False},
             'hospital': {'required': False},
+            'department': {'required': False},
             'job_title': {'required': False},
             'years_of_experience': {'required': False},
             'gender': {'required': False},
