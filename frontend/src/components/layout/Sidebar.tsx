@@ -38,7 +38,7 @@ const navItems: Record<UserRole, NavItem[]> = {
     ],
     doctor: [
         { label: '首页', href: '/doctor/home', icon: <Home className="w-5 h-5" /> },
-        { label: '待审列表', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
+        { label: '病例管理', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
         { label: '患者管理', href: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
         { label: '数据统计', href: '/doctor/statistics', icon: <BarChart3 className="w-5 h-5" /> },
         { label: '消息通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" /> },

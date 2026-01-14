@@ -1,26 +1,20 @@
 "use client"
 
 /**
- * 医生端 - 待审病例列表
+ * 医生端 - 病例管理（原待审病例列表）
+ * 增强版：统计卡片 + Tab状态筛选 + 智能操作按钮
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { getPendingCases } from '@/api/cases'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { formatDateTime, formatCaseStatus } from '@/lib/utils'
+import { formatDateTime, formatCaseStatus, cn } from '@/lib/utils'
 import { DatePickerWithRange } from '@/components/ui/date-range-picker'
 import { DateRange } from 'react-day-picker'
 import { format } from 'date-fns'
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
 import { toast } from 'sonner'
 import {
     Loader2,
@@ -30,8 +24,21 @@ import {
     ChevronRight,
     Eye,
     ClipboardCheck,
+    FileText,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    FolderOpen,
 } from 'lucide-react'
 import type { Case, PendingCasesResponse } from '@/types'
+
+// 状态筛选Tab配置
+const STATUS_TABS = [
+    { key: 'all', label: '全部', icon: FolderOpen, color: 'text-slate-600 dark:text-slate-400' },
+    { key: 'pending_review', label: '待审核', icon: Clock, color: 'text-amber-600 dark:text-amber-400' },
+    { key: 'approved', label: '已通过', icon: CheckCircle2, color: 'text-green-600 dark:text-green-400' },
+    { key: 'rejected', label: '已驳回', icon: XCircle, color: 'text-red-600 dark:text-red-400' },
+]
 
 export default function DoctorDashboardPage() {
     const router = useRouter()
@@ -39,10 +46,18 @@ export default function DoctorDashboardPage() {
     const [data, setData] = useState<PendingCasesResponse | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
-    const [statusFilter, setStatusFilter] = useState('pending_review')
+    const [statusFilter, setStatusFilter] = useState('all') // 默认显示全部
     const [dateRange, setDateRange] = useState<DateRange | undefined>()
     const [currentPage, setCurrentPage] = useState(1)
     const pageSize = 10
+
+    // 统计数据
+    const [stats, setStats] = useState({
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+    })
 
     const fetchCases = useCallback(async () => {
         try {
@@ -73,9 +88,34 @@ export default function DoctorDashboardPage() {
         }
     }, [currentPage, searchQuery, statusFilter, dateRange])
 
+    // 获取统计数据（全部状态）
+    const fetchStats = useCallback(async () => {
+        try {
+            // 分别获取各状态的数量
+            const [allRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
+                getPendingCases({ page: 1, page_size: 1 }),
+                getPendingCases({ page: 1, page_size: 1, status: 'pending_review' }),
+                getPendingCases({ page: 1, page_size: 1, status: 'approved' }),
+                getPendingCases({ page: 1, page_size: 1, status: 'rejected' }),
+            ])
+            setStats({
+                total: allRes.total,
+                pending: pendingRes.total,
+                approved: approvedRes.total,
+                rejected: rejectedRes.total,
+            })
+        } catch (err) {
+            console.error('Fetch stats error:', err)
+        }
+    }, [])
+
     useEffect(() => {
         fetchCases()
     }, [fetchCases])
+
+    useEffect(() => {
+        fetchStats()
+    }, [fetchStats])
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault()
@@ -83,23 +123,64 @@ export default function DoctorDashboardPage() {
         fetchCases()
     }
 
-    // 重置所有筛选
     const handleReset = () => {
         setSearchQuery('')
-        setStatusFilter('pending_review')
+        setStatusFilter('all')
         setDateRange(undefined)
         setCurrentPage(1)
     }
 
     const handleRefresh = () => {
         fetchCases()
+        fetchStats()
     }
 
-    const handleReview = (caseId: number) => {
+    const handleStatusChange = (status: string) => {
+        setStatusFilter(status)
+        setCurrentPage(1)
+    }
+
+    const handleViewCase = (caseId: number) => {
         router.push(`/doctor/review/${caseId}`)
     }
 
     const totalPages = data ? Math.ceil(data.total / pageSize) : 0
+
+    // 统计卡片配置
+    const statCards = useMemo(() => [
+        {
+            label: '全部病例',
+            value: stats.total,
+            icon: FolderOpen,
+            color: 'from-slate-500 to-slate-600',
+            bgColor: 'bg-slate-50 dark:bg-slate-800/50',
+            textColor: 'text-slate-600 dark:text-slate-400',
+        },
+        {
+            label: '待审核',
+            value: stats.pending,
+            icon: Clock,
+            color: 'from-amber-500 to-orange-500',
+            bgColor: 'bg-amber-50 dark:bg-amber-900/20',
+            textColor: 'text-amber-600 dark:text-amber-400',
+        },
+        {
+            label: '已通过',
+            value: stats.approved,
+            icon: CheckCircle2,
+            color: 'from-green-500 to-emerald-500',
+            bgColor: 'bg-green-50 dark:bg-green-900/20',
+            textColor: 'text-green-600 dark:text-green-400',
+        },
+        {
+            label: '已驳回',
+            value: stats.rejected,
+            icon: XCircle,
+            color: 'from-red-500 to-rose-500',
+            bgColor: 'bg-red-50 dark:bg-red-900/20',
+            textColor: 'text-red-600 dark:text-red-400',
+        },
+    ], [stats])
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -107,10 +188,10 @@ export default function DoctorDashboardPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
-                        待审病例
+                        病例管理
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        审核患者提交的诊断结果
+                        查看和审核所有患者病例
                     </p>
                 </div>
                 <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
@@ -119,34 +200,66 @@ export default function DoctorDashboardPage() {
                 </Button>
             </div>
 
-            {/* 搜索和筛选栏 */}
-            <Card>
-                <CardContent className="pt-6">
-                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
-                        {/* 状态筛选 */}
-                        <div className="w-[180px]">
-                            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1) }}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="病例状态" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="pending_review">待审核</SelectItem>
-                                    <SelectItem value="approved">已通过</SelectItem>
-                                    <SelectItem value="rejected">已驳回</SelectItem>
-                                    <SelectItem value="all">全部状态</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+            {/* 统计卡片 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {statCards.map((card) => (
+                    <Card key={card.label} className={cn("border-0 shadow-sm", card.bgColor)}>
+                        <CardContent className="pt-5 pb-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className={cn("text-sm font-medium", card.textColor)}>{card.label}</p>
+                                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">
+                                        {card.value}
+                                    </p>
+                                </div>
+                                <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center", card.color)}>
+                                    <card.icon className="w-5 h-5 text-white" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
 
-                        {/* 日期筛选 */}
-                        <div className="w-[300px]">
+            {/* Tab状态筛选 + 搜索栏 */}
+            <Card>
+                <CardContent className="pt-6 space-y-4">
+                    {/* Tab状态筛选 */}
+                    <div className="flex flex-wrap gap-2">
+                        {STATUS_TABS.map((tab) => {
+                            const isActive = statusFilter === tab.key
+                            const TabIcon = tab.icon
+                            return (
+                                <button
+                                    key={tab.key}
+                                    onClick={() => handleStatusChange(tab.key)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                                        isActive
+                                            ? "bg-blue-500 text-white shadow-md shadow-blue-500/30"
+                                            : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400"
+                                    )}
+                                >
+                                    <TabIcon className="w-4 h-4" />
+                                    {tab.label}
+                                    {tab.key === 'pending_review' && stats.pending > 0 && (
+                                        <Badge variant={isActive ? "secondary" : "destructive"} className="ml-1 px-1.5 py-0.5 text-xs">
+                                            {stats.pending}
+                                        </Badge>
+                                    )}
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    {/* 搜索和日期筛选 */}
+                    <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+                        <div className="w-full md:w-[300px]">
                             <DatePickerWithRange
                                 date={dateRange}
                                 setDate={(date) => { setDateRange(date); setCurrentPage(1) }}
                             />
                         </div>
-
-                        {/* 关键词搜索 */}
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input
@@ -156,7 +269,6 @@ export default function DoctorDashboardPage() {
                                 className="pl-10"
                             />
                         </div>
-
                         <div className="flex gap-2">
                             <Button type="submit" disabled={isLoading}>
                                 搜索
@@ -173,7 +285,7 @@ export default function DoctorDashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <ClipboardCheck className="w-5 h-5 text-blue-500" />
+                        <FileText className="w-5 h-5 text-blue-500" />
                         病例列表
                         {data && (
                             <Badge variant="secondary" className="ml-2">
@@ -217,6 +329,7 @@ export default function DoctorDashboardPage() {
                                     <tbody>
                                         {data.items.map((caseItem) => {
                                             const statusInfo = formatCaseStatus(caseItem.status)
+                                            const isPending = caseItem.status === 'pending_review'
                                             return (
                                                 <tr
                                                     key={caseItem.id}
@@ -224,7 +337,7 @@ export default function DoctorDashboardPage() {
                                                 >
                                                     <td className="py-4 px-4">
                                                         <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                            #{caseItem.id}
+                                                            #{String(caseItem.id).slice(0, 8)}...
                                                         </span>
                                                     </td>
                                                     <td className="py-4 px-4">
@@ -252,7 +365,9 @@ export default function DoctorDashboardPage() {
                                                                     ? 'warning'
                                                                     : caseItem.status === 'approved'
                                                                         ? 'success'
-                                                                        : 'secondary'
+                                                                        : caseItem.status === 'rejected'
+                                                                            ? 'destructive'
+                                                                            : 'secondary'
                                                             }
                                                         >
                                                             {statusInfo.text}
@@ -261,10 +376,11 @@ export default function DoctorDashboardPage() {
                                                     <td className="py-4 px-4 text-right">
                                                         <Button
                                                             size="sm"
-                                                            onClick={() => handleReview(caseItem.id)}
+                                                            variant={isPending ? "default" : "outline"}
+                                                            onClick={() => handleViewCase(caseItem.id)}
                                                         >
                                                             <Eye className="w-4 h-4 mr-1" />
-                                                            进入审核
+                                                            {isPending ? '进入审核' : '查看详情'}
                                                         </Button>
                                                     </td>
                                                 </tr>
@@ -276,9 +392,9 @@ export default function DoctorDashboardPage() {
 
                             {/* 分页 */}
                             {totalPages > 1 && (
-                                <div className="flex items-center justify-between pt-4">
+                                <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
                                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                                        第 {currentPage} / {totalPages} 页
+                                        显示 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, data.total)} 条，共 {data.total} 条
                                     </p>
                                     <div className="flex gap-2">
                                         <Button
@@ -307,10 +423,12 @@ export default function DoctorDashboardPage() {
                         <div className="text-center py-12">
                             <ClipboardCheck className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                             <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-                                暂无待审病例
+                                {statusFilter === 'pending_review' ? '暂无待审病例' : '暂无病例'}
                             </h3>
                             <p className="text-slate-500 dark:text-slate-400">
-                                所有病例都已审核完成
+                                {statusFilter === 'pending_review'
+                                    ? '所有病例都已审核完成'
+                                    : '当前筛选条件下没有病例'}
                             </p>
                         </div>
                     )}
