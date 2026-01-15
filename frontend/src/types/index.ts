@@ -200,3 +200,91 @@ export interface GovernanceItem {
   description?: string;
   created_at: string;
 }
+
+// =============== 管理员用户管理 ===============
+export interface AdminUser {
+  id: number;
+  username: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  gender?: string;
+  age?: number;
+  hospital?: string;
+  job_title?: string;
+  department?: string;
+  years_of_experience?: number;
+  is_active: boolean;
+  date_joined: string;
+  last_login?: string;
+  case_count: number;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUser[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+export interface AdminUserCreateRequest {
+  username: string;
+  password: string;
+  email?: string;
+  full_name?: string;
+  role?: UserRole;
+  gender?: string;
+  age?: number;
+  hospital?: string;
+  job_title?: string;
+  department?: string;
+  years_of_experience?: number;
+}
+
+// =============== 管理员病例管理 ===============
+export interface AdminCase {
+  id: string;
+  patient_name: string;
+  patient_username: string;
+  doctor_name?: string;
+  status: CaseStatus;
+  chief_complaint_text: string;
+  created_at: string;
+  updated_at: string;
+  review_count: number;
+}
+
+export interface AdminCaseListResponse {
+  items: AdminCase[];
+  page: number;
+  page_size: number;
+  total: number;
+}
+
+// =============== 管理员统计 ===============
+export interface AdminStatistics {
+  users: {
+    patient: number;
+    doctor: number;
+    admin: number;
+    total: number;
+  };
+  cases: {
+    draft: number;
+    running: number;
+    pending_review: number;
+    approved: number;
+    rejected: number;
+    failed: number;
+    total: number;
+  };
+  today: {
+    users: number;
+    cases: number;
+  };
+  trend: {
+    date: string;
+    count: number;
+  }[];
+}
+
