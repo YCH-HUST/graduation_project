@@ -2,6 +2,7 @@
 Views for adminops app.
 Updated to match frontend API contract format.
 """
+import os
 import time
 import requests
 from datetime import datetime
@@ -39,9 +40,14 @@ class HealthCheckView(APIView):
         # 2. 检查数据库
         services.append(self._check_database())
         
-        # 3. 检查外部 AI 服务
+        # 3. 检查本地 YOLO 模型
+        services.append(self._check_local_yolo())
+        
+        # 4. 检查外部 AI 服务（排除 YOLO，因为是本地模型）
         service_configs = getattr(settings, 'PIPELINE_SERVICES', {})
         for name, config in service_configs.items():
+            if name.upper() == 'YOLO':
+                continue  # 跳过 YOLO，已在上面检查本地模型
             services.append(self._check_external_service(name, config))
         
         # 计算 overall_status
@@ -84,6 +90,59 @@ class HealthCheckView(APIView):
             latency_ms = int((time.time() - start_time) * 1000)
             return {
                 'name': 'MySQL Database',
+                'status': 'unhealthy',
+                'latency_ms': latency_ms,
+                'message': str(e),
+                'last_check': datetime.now().isoformat()
+            }
+    
+    def _check_local_yolo(self) -> dict:
+        """检查本地 YOLO 模型"""
+        start_time = time.time()
+        model_path = os.path.join(settings.BASE_DIR, 'models', 'yolo', 'best.pt')
+        
+        try:
+            # 检查模型文件是否存在
+            if not os.path.exists(model_path):
+                latency_ms = int((time.time() - start_time) * 1000)
+                return {
+                    'name': 'YOLO 舌象检测模型',
+                    'status': 'unhealthy',
+                    'latency_ms': latency_ms,
+                    'message': f'模型文件不存在: {model_path}',
+                    'last_check': datetime.now().isoformat()
+                }
+            
+            # 获取模型文件大小
+            model_size_mb = os.path.getsize(model_path) / (1024 * 1024)
+            
+            # 尝试导入 ultralytics 检查依赖
+            try:
+                from ultralytics import YOLO
+                # 注意：这里不真正加载模型，因为加载模型耗时较长
+                # 只检查文件存在性和依赖可用性
+                latency_ms = int((time.time() - start_time) * 1000)
+                return {
+                    'name': 'YOLO 舌象检测模型',
+                    'status': 'healthy',
+                    'latency_ms': latency_ms,
+                    'message': f'模型就绪 ({model_size_mb:.1f} MB)',
+                    'last_check': datetime.now().isoformat()
+                }
+            except ImportError:
+                latency_ms = int((time.time() - start_time) * 1000)
+                return {
+                    'name': 'YOLO 舌象检测模型',
+                    'status': 'degraded',
+                    'latency_ms': latency_ms,
+                    'message': '缺少 ultralytics 依赖',
+                    'last_check': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            latency_ms = int((time.time() - start_time) * 1000)
+            return {
+                'name': 'YOLO 舌象检测模型',
                 'status': 'unhealthy',
                 'latency_ms': latency_ms,
                 'message': str(e),

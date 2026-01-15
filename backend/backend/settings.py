@@ -143,11 +143,8 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Pipeline service endpoints (for health check, mock by default)
+# Note: YOLO is a local model loaded from models/yolo/best.pt, not an external service
 PIPELINE_SERVICES = {
-    'YOLO': {
-        'url': 'http://localhost:8001/yolo/predict',
-        'timeout': 30,
-    },
     'NLP': {
         'url': 'http://localhost:8002/nlp/parse',
         'timeout': 30,

@@ -163,11 +163,12 @@ export const mockPipelineRun: PipelineRun = {
 
 // Mock 服务健康状态
 export const mockServiceHealth: ServiceHealth[] = [
-    { name: 'Django Backend', status: 'healthy', latency_ms: 45, last_check: '2024-01-13T10:00:00Z' },
-    { name: 'PostgreSQL Database', status: 'healthy', latency_ms: 12, last_check: '2024-01-13T10:00:00Z' },
-    { name: 'Redis Cache', status: 'healthy', latency_ms: 3, last_check: '2024-01-13T10:00:00Z' },
-    { name: 'Tongue Detection Model', status: 'healthy', latency_ms: 150, last_check: '2024-01-13T10:00:00Z' },
-    { name: 'LLM Service', status: 'degraded', latency_ms: 2500, message: '响应较慢', last_check: '2024-01-13T10:00:00Z' },
+    { name: 'Django Backend', status: 'healthy', latency_ms: 45, message: '响应正常', last_check: '2024-01-13T10:00:00Z' },
+    { name: 'MySQL Database', status: 'healthy', latency_ms: 12, last_check: '2024-01-13T10:00:00Z' },
+    { name: 'YOLO 舌象检测模型', status: 'healthy', latency_ms: 5, message: '模型就绪 (18.3 MB)', last_check: '2024-01-13T10:00:00Z' },
+    { name: 'NLP Service', status: 'degraded', latency_ms: 100, message: '使用 Mock 模式（实际服务未部署）', last_check: '2024-01-13T10:00:00Z' },
+    { name: 'SYNDROME Service', status: 'degraded', latency_ms: 100, message: '使用 Mock 模式（实际服务未部署）', last_check: '2024-01-13T10:00:00Z' },
+    { name: 'EXPLANATION Service', status: 'degraded', latency_ms: 100, message: '使用 Mock 模式（实际服务未部署）', last_check: '2024-01-13T10:00:00Z' },
 ]
 
 // 生成 Mock Token
