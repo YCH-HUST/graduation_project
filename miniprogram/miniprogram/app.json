@@ -1,14 +1,38 @@
 {
   "pages": [
-    "pages/index/index",
-    "pages/logs/logs"
+    "pages/login/login",
+    "pages/home/home",
+    "pages/new-case/new-case",
+    "pages/case-detail/case-detail",
+    "pages/profile/profile"
   ],
   "window": {
-    "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "Weixin",
-    "navigationBarBackgroundColor": "#ffffff"
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "中医智能诊疗",
+    "navigationBarBackgroundColor": "#10b981",
+    "backgroundColor": "#f0fdf4",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#94a3b8",
+    "selectedColor": "#10b981",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/new-case/new-case",
+        "text": "新建病例"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
   },
   "style": "v2",
-  "componentFramework": "glass-easel",
   "lazyCodeLoading": "requiredComponents"
 }

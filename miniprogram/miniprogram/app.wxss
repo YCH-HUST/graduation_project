@@ -1,10 +1,221 @@
-/**app.wxss**/
-.container {
-  height: 100%;
+/* 全局样式 */
+page {
+  background-color: #f0fdf4;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  color: #1e293b;
+}
+
+/* ===== CSS 变量 ===== */
+/* --primary: #10b981 (emerald-500) */
+/* --primary-dark: #059669 (emerald-600) */
+/* --secondary: #14b8a6 (teal-500) */
+
+/* ===== 通用容器 ===== */
+.page-container {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===== 卡片 ===== */
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.card-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8rpx;
+}
+
+.card-desc {
+  font-size: 24rpx;
+  color: #94a3b8;
+  margin-bottom: 20rpx;
+}
+
+/* ===== 按钮 ===== */
+.btn-primary {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 48rpx;
+  border: none;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+  transition: all 0.2s;
+}
+
+.btn-primary::after { border: none; }
+
+.btn-primary:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #10b981;
+  font-size: 28rpx;
+  border: none;
+  padding: 0;
+}
+
+.btn-ghost::after { border: none; }
+
+.btn-outline {
+  background: transparent;
+  color: #10b981;
+  border: 2rpx solid #10b981;
+  border-radius: 48rpx;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  font-size: 28rpx;
+}
+
+.btn-outline::after { border: none; }
+
+.btn-disabled {
+  opacity: 0.5;
+}
+
+/* ===== 输入框 ===== */
+.form-group {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  font-size: 26rpx;
+  color: #64748b;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: #ef4444;
+}
+
+.form-input {
+  width: 100%;
+  height: 88rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  color: #0f172a;
+  box-sizing: border-box;
+}
+
+.form-error {
+  font-size: 22rpx;
+  color: #ef4444;
+  margin-top: 8rpx;
+}
+
+/* ===== 状态徽章 ===== */
+.badge {
+  display: inline-block;
+  padding: 6rpx 20rpx;
+  border-radius: 100rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.badge-pending_review { background: #fef3c7; color: #92400e; }
+.badge-approved { background: #d1fae5; color: #065f46; }
+.badge-rejected { background: #fee2e2; color: #991b1b; }
+.badge-running { background: #dbeafe; color: #1e40af; }
+.badge-created { background: #f1f5f9; color: #475569; }
+.badge-failed { background: #fee2e2; color: #991b1b; }
+
+/* ===== 加载状态 ===== */
+.loading-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 200rpx 0;
-  box-sizing: border-box;
-} 
+  justify-content: center;
+  padding: 80rpx 0;
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #94a3b8;
+  margin-top: 20rpx;
+}
+
+/* ===== 空状态 ===== */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 12rpx;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* ===== 分割线 ===== */
+.divider {
+  height: 1rpx;
+  background: #f1f5f9;
+  margin: 24rpx 0;
+}
+
+/* ===== 进度条 ===== */
+.progress-wrap {
+  background: #e2e8f0;
+  border-radius: 8rpx;
+  height: 12rpx;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 8rpx;
+  background: linear-gradient(90deg, #10b981, #14b8a6);
+  transition: width 0.5s ease;
+}

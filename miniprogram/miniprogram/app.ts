@@ -1,18 +1,11 @@
 // app.ts
-App<IAppOption>({
-  globalData: {},
-  onLaunch() {
-    // 展示本地存储能力
-    const logs = wx.getStorageSync('logs') || []
-    logs.unshift(Date.now())
-    wx.setStorageSync('logs', logs)
 
-    // 登录
-    wx.login({
-      success: res => {
-        console.log(res.code)
-        // 发送 res.code 到后台换取 openId, sessionKey, unionId
-      },
-    })
+App({
+  onLaunch() {
+    // 如果未登录，会在各页面的 onLoad/onShow 中重定向到登录页
+    console.log('App launched')
+  },
+  globalData: {
+    userInfo: null as any,
   },
 })

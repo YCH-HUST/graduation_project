@@ -1,0 +1,7 @@
+{
+    "navigationBarTitleText": "中医智能诊疗",
+    "navigationBarBackgroundColor": "#10b981",
+    "navigationBarTextStyle": "white",
+    "enablePullDownRefresh": true,
+    "backgroundColor": "#f0fdf4"
+}

@@ -1,0 +1,261 @@
+<view class="page-container new-case-page">
+
+  <!-- ===== Step 1: 选择科室 ===== -->
+  <block wx:if="{{step === 'dept'}}">
+    <view class="step-header">
+      <text class="step-title">新建病例</text>
+      <text class="step-sub">第 1 步：选择就诊科室</text>
+    </view>
+    <view class="dept-grid">
+      <view
+        class="dept-card {{selectedDeptKey === item.key ? 'selected' : ''}}"
+        wx:for="{{departments}}"
+        wx:key="key"
+        bindtap="onSelectDept"
+        data-key="{{item.key}}"
+      >
+        <text class="dept-icon">{{item.icon}}</text>
+        <text class="dept-name">{{item.name}}</text>
+        <text class="dept-desc">{{item.description}}</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- ===== Step 2: 选择医生 ===== -->
+  <block wx:elif="{{step === 'doctor'}}">
+    <view class="step-header">
+      <view class="back-btn" bindtap="onBackToDept">‹ 返回</view>
+      <view>
+        <text class="step-title">选择医生</text>
+        <text class="step-sub">{{selectedDeptName}} · 第 2 步</text>
+      </view>
+    </view>
+
+    <view class="loading-wrap" wx:if="{{doctorsLoading}}">
+      <text class="loading-text">加载医生列表...</text>
+    </view>
+
+    <block wx:elif="{{doctors.length === 0}}">
+      <view class="card empty-wrap">
+        <text class="empty-icon">👨‍⚕️</text>
+        <text class="empty-title">暂无医生</text>
+        <text class="empty-desc">该科室暂无注册医生，请选择其他科室</text>
+        <button class="btn-outline" style="width:240rpx;margin-top:24rpx" bindtap="onBackToDept">重选科室</button>
+      </view>
+    </block>
+
+    <block wx:else>
+      <view
+        class="doctor-card {{selectedDoctorId === item.id ? 'selected' : ''}}"
+        wx:for="{{doctors}}"
+        wx:key="id"
+        bindtap="onSelectDoctor"
+        data-id="{{item.id}}"
+        data-name="{{item.full_name || item.username}}"
+      >
+        <view class="doctor-avatar">
+          <text>{{item.initial}}</text>
+        </view>
+        <view class="doctor-info">
+          <text class="doctor-name">{{item.full_name || item.username}}</text>
+          <view class="doctor-tags">
+            <text class="tag-purple" wx:if="{{item.job_title}}">{{item.job_title}}</text>
+            <text class="tag-green" wx:if="{{item.years_of_experience}}">{{item.years_of_experience}}年经验</text>
+          </view>
+          <text class="doctor-hospital" wx:if="{{item.hospital}}">🏥 {{item.hospital}}</text>
+        </view>
+        <text class="check-icon" wx:if="{{selectedDoctorId === item.id}}">✓</text>
+      </view>
+      <button
+        class="btn-primary {{!selectedDoctorId ? 'btn-disabled' : ''}}"
+        disabled="{{!selectedDoctorId}}"
+        bindtap="onConfirmDoctor"
+        style="margin-top:32rpx"
+      >下一步 ›</button>
+    </block>
+  </block>
+
+  <!-- ===== Step 3: 填写表单 ===== -->
+  <block wx:elif="{{step === 'form'}}">
+    <view class="step-header">
+      <view class="back-btn" bindtap="onBackToDoctor">‹ 返回</view>
+      <view>
+        <text class="step-title">填写病例信息</text>
+        <text class="step-sub">{{selectedDeptName}} · {{selectedDoctorName}}</text>
+      </view>
+    </view>
+
+    <!-- 舌象上传 -->
+    <view class="card">
+      <text class="card-title">舌象图片 <text style="color:#ef4444">*</text></text>
+      <text class="card-desc">请拍摄或选择清晰的舌象照片</text>
+      <view class="image-upload" bindtap="onChooseImage">
+        <image wx:if="{{imagePath}}" src="{{imagePath}}" class="tongue-preview" mode="aspectFill" />
+        <view wx:else class="upload-placeholder">
+          <text class="upload-icon">📷</text>
+          <text class="upload-text">点击上传舌象图片</text>
+        </view>
+      </view>
+      <text class="form-error" wx:if="{{formErrors.image}}">{{formErrors.image}}</text>
+    </view>
+
+    <!-- 问诊表单 -->
+    <view class="card">
+      <text class="card-title">问诊信息</text>
+
+      <view class="form-group">
+        <text class="form-label required">主诉</text>
+        <textarea
+          class="form-textarea"
+          placeholder="请描述主要症状（必填）"
+          value="{{questionnaire.chief_complaint}}"
+          bindinput="onQuestionnaireInput"
+          data-field="chief_complaint"
+          auto-height
+        />
+        <text class="form-error" wx:if="{{formErrors.chief_complaint}}">{{formErrors.chief_complaint}}</text>
+      </view>
+
+      <view class="form-group">
+        <text class="form-label required">现病史</text>
+        <textarea
+          class="form-textarea"
+          placeholder="请描述本次发病经过（必填）"
+          value="{{questionnaire.present_illness}}"
+          bindinput="onQuestionnaireInput"
+          data-field="present_illness"
+          auto-height
+        />
+        <text class="form-error" wx:if="{{formErrors.present_illness}}">{{formErrors.present_illness}}</text>
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">既往史</text>
+        <input class="form-input" placeholder="可选" value="{{questionnaire.past_history}}"
+          bindinput="onQuestionnaireInput" data-field="past_history" />
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">睡眠质量</text>
+        <input class="form-input" placeholder="可选" value="{{questionnaire.sleep_quality}}"
+          bindinput="onQuestionnaireInput" data-field="sleep_quality" />
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">食欲</text>
+        <input class="form-input" placeholder="可选" value="{{questionnaire.appetite}}"
+          bindinput="onQuestionnaireInput" data-field="appetite" />
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">大便情况</text>
+        <input class="form-input" placeholder="可选" value="{{questionnaire.bowel_movement}}"
+          bindinput="onQuestionnaireInput" data-field="bowel_movement" />
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">小便情况</text>
+        <input class="form-input" placeholder="可选" value="{{questionnaire.urination}}"
+          bindinput="onQuestionnaireInput" data-field="urination" />
+      </view>
+
+      <view class="form-group">
+        <text class="form-label">补充说明</text>
+        <textarea class="form-textarea" placeholder="可选" value="{{questionnaire.additional_notes}}"
+          bindinput="onQuestionnaireInput" data-field="additional_notes" auto-height />
+      </view>
+
+      <button class="btn-primary" bindtap="onDetect">🔍 开始舌象检测</button>
+    </view>
+  </block>
+
+  <!-- ===== 检测中 ===== -->
+  <block wx:elif="{{step === 'detecting'}}">
+    <view class="status-card">
+      <text class="status-icon anim-pulse">🔍</text>
+      <text class="status-title">正在检测舌象</text>
+      <text class="status-desc">AI 正在分析您的舌象图片，请稍候...</text>
+    </view>
+  </block>
+
+  <!-- ===== Step 4: 检测结果 ===== -->
+  <block wx:elif="{{step === 'detected'}}">
+    <view class="step-header">
+      <view class="back-btn" bindtap="onBackToForm">‹ 重新检测</view>
+      <text class="step-title">舌象检测结果</text>
+    </view>
+
+    <!-- 标注图 -->
+    <view class="card" wx:if="{{annotatedImage}}">
+      <text class="card-title">标注结果</text>
+      <image src="{{annotatedImage}}" class="annotated-img" mode="widthFix" />
+    </view>
+
+    <!-- 检测详情 -->
+    <view class="card">
+      <text class="card-title">检测详情（共 {{detections.length}} 个目标）</text>
+      <view wx:if="{{detections.length === 0}}" class="empty-wrap" style="padding:40rpx 0">
+        <text class="empty-icon">⚠️</text>
+        <text class="empty-desc">未检测到舌象特征，请检查图片质量</text>
+      </view>
+      <view
+        class="detection-item"
+        wx:for="{{detections}}"
+        wx:key="index"
+      >
+        <view class="detection-dot"></view>
+        <view class="detection-info">
+          <text class="detection-name">{{item.class_name}}</text>
+          <text class="detection-id">类别 ID: {{item.class_id}}</text>
+        </view>
+        <view class="conf-badge {{item.confClass}}">
+          {{item.confText}}%
+        </view>
+      </view>
+    </view>
+
+    <button class="btn-primary" bindtap="onSubmitCase">确认提交病例 →</button>
+  </block>
+
+  <!-- ===== Step 5: 处理中 ===== -->
+  <block wx:elif="{{step === 'submitting' || step === 'processing' || step === 'success'}}">
+    <view class="status-card">
+      <text class="status-icon {{step === 'success' ? '' : 'anim-pulse'}}">
+        {{step === 'success' ? '✅' : '⚙️'}}
+      </text>
+      <text class="status-title">{{step === 'success' ? '诊断完成' : '正在分析中'}}</text>
+      <text class="status-desc">{{step === 'success' ? '即将跳转到结果页...' : 'AI 正在分析您的舌象数据'}}</text>
+
+      <view class="progress-wrap" style="margin:32rpx 0 16rpx">
+        <view class="progress-bar" style="width:{{progress}}%"></view>
+      </view>
+      <text style="font-size:26rpx;color:#10b981;font-weight:700">{{progress}}%</text>
+
+      <!-- 阶段指示器 -->
+      <view class="stages-row">
+        <view
+          class="stage-item {{progress >= (index+1)*20 ? 'stage-done' : (progress >= index*20 ? 'stage-active' : '')}}"
+          wx:for="{{pipelineStages}}"
+          wx:key="key"
+        >
+          <view class="stage-dot">{{progress >= (index+1)*20 ? '✓' : index+1}}</view>
+          <text class="stage-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ===== 错误状态 ===== -->
+  <block wx:elif="{{step === 'error'}}">
+    <view class="status-card">
+      <text class="status-icon">❌</text>
+      <text class="status-title" style="color:#ef4444">处理失败</text>
+      <text class="status-desc">{{errorMessage}}</text>
+      <view style="display:flex;gap:24rpx;margin-top:40rpx">
+        <button class="btn-outline" style="flex:1" bindtap="onReset">重新填写</button>
+        <button class="btn-primary" style="flex:1" wx:if="{{caseId}}" bindtap="onViewCase">查看病例</button>
+      </view>
+    </view>
+  </block>
+
+</view>

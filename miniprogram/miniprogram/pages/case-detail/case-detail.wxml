@@ -1,0 +1,123 @@
+<view class="page-container" wx:if="{{!isLoading && !error}}">
+
+  <!-- 状态栏 -->
+  <view class="detail-header">
+    <view>
+      <text class="case-id-text">病例 #{{caseData.id}}</text>
+      <text class="case-time-text">{{caseData.timeText}}</text>
+    </view>
+    <view class="badge {{statusBgClass}}">{{statusText}}</view>
+  </view>
+
+  <!-- 处理中提示 -->
+  <view class="card processing-card" wx:if="{{caseData.status === 'running' || caseData.status === 'created'}}">
+    <text class="processing-icon">⚙️</text>
+    <text class="processing-title">正在处理中</text>
+    <text class="processing-desc">系统正在分析您的舌象数据，请稍候...</text>
+    <view class="progress-wrap" style="margin-top:20rpx" wx:if="{{run}}">
+      <view class="progress-bar" style="width:{{run.progress}}%"></view>
+    </view>
+  </view>
+
+  <!-- 有诊断结果时 -->
+  <block wx:if="{{result}}">
+
+    <!-- 证候分析 -->
+    <view class="card">
+      <view class="card-title-row">
+        <text class="card-title">🩺 证候分析</text>
+        <text class="conf-text">置信度 {{result.confidencePercent}}%</text>
+      </view>
+      <view class="syndrome-item" wx:for="{{result.syndromes}}" wx:key="name">
+        <view class="syndrome-header">
+          <text class="syndrome-name">{{item.name}}</text>
+          <text class="syndrome-score">{{item.scorePercent}}%</text>
+        </view>
+        <view class="progress-wrap">
+          <view class="progress-bar" style="width:{{item.scorePercent}}%"></view>
+        </view>
+        <text class="syndrome-desc" wx:if="{{item.description}}">{{item.description}}</text>
+      </view>
+    </view>
+
+    <!-- 推荐方剂 -->
+    <view class="card">
+      <text class="card-title">💊 推荐方剂</text>
+      <view class="formula-item" wx:for="{{result.formulas}}" wx:key="name">
+        <view class="formula-header">
+          <text class="formula-name">{{item.name}}</text>
+          <view class="badge badge-approved">{{item.scorePercent}}%</view>
+        </view>
+        <view wx:if="{{item.composition}}" class="formula-row">
+          <text class="formula-label">组成：</text>
+          <text class="formula-value">{{item.composition}}</text>
+        </view>
+        <view wx:if="{{item.indication}}" class="formula-row">
+          <text class="formula-label">功效：</text>
+          <text class="formula-value">{{item.indication}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 证据要点 -->
+    <view class="card">
+      <text class="card-title">📝 证据要点</text>
+      <view class="evidence-item" wx:for="{{result.evidence_points}}" wx:key="index">
+        <view class="evidence-num">{{index + 1}}</view>
+        <text class="evidence-text">{{item}}</text>
+      </view>
+    </view>
+
+    <!-- AI 综合分析（可折叠） -->
+    <view class="card">
+      <view class="toggle-header" bindtap="toggleExplanation">
+        <text class="card-title">🤖 AI 综合分析</text>
+        <text class="toggle-arrow">{{showExplanation ? '▲' : '▼'}}</text>
+      </view>
+      <view wx:if="{{showExplanation}}" class="explanation-text">
+        <text>{{result.llm_explanation}}</text>
+      </view>
+    </view>
+
+  </block>
+
+  <!-- 可视化图片 -->
+  <view class="card" wx:if="{{assets.length > 0}}">
+    <text class="card-title">🖼 可视化资源</text>
+    <view class="assets-grid">
+      <view
+        class="asset-item"
+        wx:for="{{assets}}"
+        wx:key="id"
+        bindtap="onPreviewImage"
+        data-url="{{item.fullUrl}}"
+      >
+        <image src="{{item.fullUrl}}" class="asset-img" mode="aspectFill" />
+        <text class="asset-label">{{item.typeName}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 问诊信息 -->
+  <view class="card">
+    <text class="card-title">📋 问诊信息</text>
+    <view class="q-item" wx:for="{{caseData.qEntries}}" wx:key="label">
+      <text class="q-label">{{item.label}}</text>
+      <text class="q-value">{{item.value || '-'}}</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 加载中 -->
+<view class="loading-wrap full-loading" wx:if="{{isLoading}}">
+  <text style="font-size:72rpx">⏳</text>
+  <text class="loading-text">加载中...</text>
+</view>
+
+<!-- 错误 -->
+<view class="loading-wrap full-loading" wx:if="{{error}}">
+  <text style="font-size:72rpx">❌</text>
+  <text class="loading-text">{{error}}</text>
+  <button class="btn-primary" style="width:240rpx;margin-top:32rpx" bindtap="onReload">重新加载</button>
+</view>

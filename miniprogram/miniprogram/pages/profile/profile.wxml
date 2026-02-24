@@ -1,0 +1,86 @@
+<view class="page-container" wx:if="{{!isLoading}}">
+
+  <!-- 头部 -->
+  <view class="profile-header">
+    <view class="avatar-big">
+      <text class="avatar-big-text">
+        {{userInitial}}
+      </text>
+    </view>
+    <text class="username-text">@{{username}}</text>
+  </view>
+
+  <!-- 编辑表单 -->
+  <view class="card">
+    <text class="card-title" style="margin-bottom:28rpx">编辑个人信息</text>
+
+    <view class="form-group">
+      <text class="form-label">姓名</text>
+      <input
+        class="form-input"
+        placeholder="请输入姓名"
+        value="{{formData.full_name}}"
+        bindinput="onInput"
+        data-field="full_name"
+      />
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">邮箱</text>
+      <input
+        class="form-input"
+        type="email"
+        placeholder="请输入邮箱"
+        value="{{formData.email}}"
+        bindinput="onInput"
+        data-field="email"
+      />
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">性别</text>
+      <view class="gender-row">
+        <view
+          class="gender-btn {{formData.gender === 'male' ? 'active' : ''}}"
+          bindtap="onGenderSelect"
+          data-gender="male"
+        >男</view>
+        <view
+          class="gender-btn {{formData.gender === 'female' ? 'active' : ''}}"
+          bindtap="onGenderSelect"
+          data-gender="female"
+        >女</view>
+      </view>
+    </view>
+
+    <view class="form-group">
+      <text class="form-label">年龄</text>
+      <input
+        class="form-input"
+        type="number"
+        placeholder="请输入年龄"
+        value="{{formData.age}}"
+        bindinput="onInput"
+        data-field="age"
+      />
+    </view>
+
+    <button
+      class="btn-primary {{isSaving ? 'btn-disabled' : ''}}"
+      disabled="{{isSaving}}"
+      bindtap="onSave"
+      style="margin-top:16rpx"
+    >
+      {{isSaving ? '保存中...' : '💾 保存修改'}}
+    </button>
+  </view>
+
+  <!-- 退出登录 -->
+  <button class="logout-btn" bindtap="onLogout">退出登录</button>
+
+</view>
+
+<view class="loading-wrap full-loading" wx:if="{{isLoading}}">
+  <text style="font-size:72rpx">⏳</text>
+  <text class="loading-text">加载中...</text>
+</view>

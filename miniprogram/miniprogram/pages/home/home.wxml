@@ -1,0 +1,98 @@
+<view class="page-container home-page" wx:if="{{!isLoading}}">
+
+  <!-- 顶部个人信息卡片 -->
+  <view class="profile-card">
+    <view class="profile-bg"></view>
+    <view class="profile-content">
+      <view class="avatar-wrap">
+        <text class="avatar-text">{{userInitial}}</text>
+      </view>
+      <view class="profile-info">
+        <text class="profile-name">{{userInfo.full_name || '未设置姓名'}}</text>
+        <text class="profile-username">@{{userInfo.username}}</text>
+      </view>
+      <view class="edit-btn" bindtap="onProfile">
+        <text>编辑</text>
+      </view>
+    </view>
+    <view class="info-row">
+      <view class="info-item">
+        <text class="info-label">邮箱</text>
+        <text class="info-value">{{userInfo.email || '未设置'}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">性别</text>
+        <text class="info-value">
+          {{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}}
+        </text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">年龄</text>
+        <text class="info-value">{{userInfo.age ? userInfo.age + ' 岁' : '未设置'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-row">
+    <view class="stat-card stat-pending">
+      <text class="stat-num">{{stats.pending_review}}</text>
+      <text class="stat-label">待审核</text>
+    </view>
+    <view class="stat-card stat-running">
+      <text class="stat-num">{{stats.running}}</text>
+      <text class="stat-label">诊断中</text>
+    </view>
+    <view class="stat-card stat-done">
+      <text class="stat-num">{{stats.approved}}</text>
+      <text class="stat-label">已完成</text>
+    </view>
+  </view>
+
+  <!-- 最近病例 -->
+  <view class="card">
+    <view class="section-header">
+      <text class="card-title">最近病例</text>
+      <button class="btn-new" bindtap="onNewCase">＋ 新建</button>
+    </view>
+
+    <view class="loading-wrap" wx:if="{{casesLoading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <view wx:elif="{{recentCases.length === 0}}" class="empty-wrap">
+      <text class="empty-icon">📋</text>
+      <text class="empty-title">暂无病例记录</text>
+      <text class="empty-desc">点击新建按钮创建您的第一个病例</text>
+    </view>
+
+    <view wx:else class="case-list">
+      <view
+        class="case-item"
+        wx:for="{{recentCases}}"
+        wx:key="id"
+        bindtap="onViewCase"
+        data-id="{{item.id}}"
+      >
+        <view class="case-icon-wrap">
+          <text class="case-icon">📄</text>
+        </view>
+        <view class="case-info">
+          <text class="case-complaint">{{item.chief_complaint}}</text>
+          <text class="case-time">提交于 {{item.timeText}}</text>
+        </view>
+        <view class="case-right">
+          <view class="badge {{item.statusBgClass}}">{{item.statusText}}</view>
+          <text class="arrow">›</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- 全屏加载 -->
+<view class="loading-wrap full-loading" wx:if="{{isLoading}}">
+  <text class="loading-icon">⏳</text>
+  <text class="loading-text">加载中...</text>
+</view>

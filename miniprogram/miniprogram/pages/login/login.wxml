@@ -1,0 +1,121 @@
+<view class="login-page">
+  <!-- 顶部品牌区 -->
+  <view class="login-header">
+    <view class="logo-wrap">
+      <text class="logo-icon">🌿</text>
+    </view>
+    <text class="app-name">中医智能诊疗</text>
+    <text class="app-subtitle">AI 辅助舌象分析系统</text>
+  </view>
+
+  <!-- 标签切换 -->
+  <view class="tab-bar">
+    <view
+      class="tab-item {{activeTab === 'login' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="login"
+    >登录</view>
+    <view
+      class="tab-item {{activeTab === 'register' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="register"
+    >注册</view>
+  </view>
+
+  <!-- 登录表单 -->
+  <view class="form-card" wx:if="{{activeTab === 'login'}}">
+    <view class="form-group">
+      <text class="form-label required">用户名</text>
+      <input
+        class="form-input"
+        placeholder="请输入用户名"
+        value="{{loginForm.username}}"
+        bindinput="onLoginInput"
+        data-field="username"
+        confirm-type="next"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label required">密码</text>
+      <input
+        class="form-input"
+        placeholder="请输入密码"
+        password
+        value="{{loginForm.password}}"
+        bindinput="onLoginInput"
+        data-field="password"
+        confirm-type="done"
+        bindconfirm="onLogin"
+      />
+    </view>
+    <view class="error-text" wx:if="{{loginError}}">{{loginError}}</view>
+    <button
+      class="btn-primary {{isLoading ? 'btn-disabled' : ''}}"
+      bindtap="onLogin"
+      disabled="{{isLoading}}"
+    >
+      {{isLoading ? '登录中...' : '立即登录'}}
+    </button>
+    <view class="hint-text">
+      <text>测试账号：patient / patient123</text>
+    </view>
+  </view>
+
+  <!-- 注册表单 -->
+  <view class="form-card" wx:if="{{activeTab === 'register'}}">
+    <view class="form-group">
+      <text class="form-label required">用户名</text>
+      <input
+        class="form-input"
+        placeholder="3-20位字母、数字或下划线"
+        value="{{registerForm.username}}"
+        bindinput="onRegisterInput"
+        data-field="username"
+        confirm-type="next"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label required">密码</text>
+      <input
+        class="form-input"
+        placeholder="至少 6 位字符"
+        password
+        value="{{registerForm.password}}"
+        bindinput="onRegisterInput"
+        data-field="password"
+        confirm-type="next"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label">真实姓名</text>
+      <input
+        class="form-input"
+        placeholder="可选"
+        value="{{registerForm.full_name}}"
+        bindinput="onRegisterInput"
+        data-field="full_name"
+        confirm-type="next"
+      />
+    </view>
+    <view class="form-group">
+      <text class="form-label">邮箱</text>
+      <input
+        class="form-input"
+        type="email"
+        placeholder="可选"
+        value="{{registerForm.email}}"
+        bindinput="onRegisterInput"
+        data-field="email"
+        confirm-type="done"
+      />
+    </view>
+    <view class="error-text" wx:if="{{registerError}}">{{registerError}}</view>
+    <button
+      class="btn-primary {{isLoading ? 'btn-disabled' : ''}}"
+      bindtap="onRegister"
+      disabled="{{isLoading}}"
+    >
+      {{isLoading ? '注册中...' : '立即注册'}}
+    </button>
+  </view>
+</view>

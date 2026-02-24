@@ -1,0 +1,73 @@
+/* pages/profile/profile.wxss */
+.full-loading { height: 80vh; }
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 0 40rpx;
+}
+
+.avatar-big {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 70rpx;
+  background: linear-gradient(135deg, #10b981, #0d9488);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(16, 185, 129, 0.35);
+  margin-bottom: 20rpx;
+}
+
+.avatar-big-text {
+  font-size: 64rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.username-text {
+  font-size: 28rpx;
+  color: #64748b;
+}
+
+/* 性别选择 */
+.gender-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.gender-btn {
+  flex: 1;
+  height: 80rpx;
+  line-height: 80rpx;
+  text-align: center;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.gender-btn.active {
+  border-color: #10b981;
+  color: #10b981;
+  background: #f0fdf4;
+  font-weight: 600;
+}
+
+/* 退出登录 */
+.logout-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 20rpx;
+  border: none;
+  margin-top: 16rpx;
+}
+.logout-btn::after { border: none; }
