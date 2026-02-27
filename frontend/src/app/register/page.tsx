@@ -98,7 +98,7 @@ export default function RegisterPage() {
 
             // 根据角色跳转到对应首页
             const roleRedirects: Record<UserRole, string> = {
-                patient: '/patient/new-case',
+                patient: '/login',  // 患者端已迁移至微信小程序
                 doctor: '/doctor/dashboard',
                 admin: '/admin/health',
             }
@@ -243,8 +243,8 @@ export default function RegisterPage() {
                                     onClick={() => setFormData(prev => ({ ...prev, role: 'patient' }))}
                                     disabled={isLoading}
                                     className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.role === 'patient'
-                                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
-                                            : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
+                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
+                                        : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
                                         }`}
                                 >
                                     <User className="w-5 h-5" />
@@ -255,8 +255,8 @@ export default function RegisterPage() {
                                     onClick={() => setFormData(prev => ({ ...prev, role: 'doctor' }))}
                                     disabled={isLoading}
                                     className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.role === 'doctor'
-                                            ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
-                                            : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300'
+                                        : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'
                                         }`}
                                 >
                                     <Stethoscope className="w-5 h-5" />

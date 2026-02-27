@@ -33,11 +33,7 @@ interface NavItem {
 }
 
 const navItems: Record<UserRole, NavItem[]> = {
-    patient: [
-        { label: '首页', href: '/patient/home', icon: <Home className="w-5 h-5" /> },
-        { label: '新建病例', href: '/patient/new-case', icon: <Plus className="w-5 h-5" /> },
-        { label: '个人资料', href: '/patient/profile', icon: <Settings className="w-5 h-5" /> },
-    ],
+    patient: [],  // 患者端已迁移至微信小程序
     doctor: [
         { label: '首页', href: '/doctor/home', icon: <Home className="w-5 h-5" /> },
         { label: '病例管理', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },

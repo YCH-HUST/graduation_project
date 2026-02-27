@@ -70,7 +70,7 @@ function LoginForm() {
                 router.push(redirectUrl)
             } else {
                 const roleRedirects: Record<UserRole, string> = {
-                    patient: '/patient/new-case',
+                    patient: '/login',  // 患者端已迁移至微信小程序
                     doctor: '/doctor/dashboard',
                     admin: '/admin/health',
                 }

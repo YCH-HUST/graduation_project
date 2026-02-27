@@ -33,7 +33,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
             // 已登录但角色不匹配，跳转到对应首页或显示无权限
             if (allowedRoles && role && !allowedRoles.includes(role)) {
                 const roleRedirects: Record<UserRole, string> = {
-                    patient: '/patient/new-case',
+                    patient: '/login',  // 患者端已迁移至微信小程序
                     doctor: '/doctor/dashboard',
                     admin: '/admin/health',
                 }
