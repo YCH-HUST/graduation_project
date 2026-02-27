@@ -101,25 +101,6 @@ class LLMSymptomExtractClient:
         symptom_list = self._get_symptom_list()
         symptom_str = "、".join(symptom_list)
 
-        system_prompt = (
-            "你是一名中医诊疗助手，负责从患者主诉和现病史中提取标准化中医症状。\n"
-            "规则：\n"
-            "1. 只能从以下症状词典中选择词条，不得自己创造新词：\n"
-            f"【症状词典】{symptom_str}\n"
-            "2. 严格返回 JSON 格式，格式为：{\"symptoms\": [\"症状1\", \"症状2\", ...]}\n"
-            "3. 只返回 JSON，不要有任何其他内容或解释。\n"
-            "4. 如果找不到匹配的症状，返回：{\"symptoms\": []}"
-        )
-
-        # 构建用户输入文本
-        lines = []
-        if chief_complaint:
-            lines.append(f"主诉：{chief_complaint}")
-        present_illness = questionnaire.get('present_illness', '') if questionnaire else ''
-        if present_illness:
-            lines.append(f"现病史：{present_illness}")
-        user_prompt = "\n".join(lines) if lines else "（无主诉信息）"
-
         try:
             # 从 DB 读取 System Prompt 模版（支持 {symptom_list} 占位符）
             from apps.adminops.models import AIConfig
@@ -295,6 +276,22 @@ class LLMAnalysisClient:
         Returns:
             综合分析文本字符串
         """
+        # 从 DB 实时读取 System Prompt
+        try:
+            from apps.adminops.models import AIConfig
+            system_prompt = AIConfig.get('prompt_analysis_system', (
+                "你是一名资深中医师，请根据以下患者信息给出简洁的综合诊疗分析。\n"
+                "输出格式（严格按此结构）：\n"
+                "【证候分析】\n逐条说明主要证候及其辨证依据，每条不超过2句。\n\n"
+                "【推荐用药】\n列出主要推荐药物及其功效，简明扼要，每味药一行。\n\n"
+                "【调护建议】\n给出3条生活调护建议，面向患者，语言通俗易懂。\n\n"
+                "注意：语言简洁专业，总字数不超过500字。"
+            ))
+        except Exception:
+            system_prompt = self.SYSTEM_PROMPT or (
+                "你是一名资深中医师，请根据以下患者信息给出综合诊疗分析建议。"
+            )
+
         # 构建用户输入
         syndrome_text = "、".join(
             [f"{s['name']}（{int(s['confidence']*100)}%）" for s in syndromes[:5]]
@@ -316,7 +313,7 @@ class LLMAnalysisClient:
         )
 
         try:
-            return _call_llm(self.SYSTEM_PROMPT, user_prompt, max_tokens=800)
+            return _call_llm(system_prompt, user_prompt, max_tokens=800)
         except Exception as e:
             print(f"[LLMAnalysisClient] Error: {e}")
             return f"【证候分析】\n{syndrome_text}\n\n【推荐用药】\n{herb_text}\n\n【调护建议】\n请遵医嘱。"

@@ -192,7 +192,26 @@ export interface HealthResponse {
   overall_status: 'healthy' | 'unhealthy' | 'degraded';
 }
 
-// =============== 数据治理（占位） ===============
+// =============== AI 配置管理 ===============
+
+export interface AIConfigItem {
+  key: string;
+  value: string;            // API Key 会遮蔽中间部分
+  description: string;
+  is_sensitive: boolean;
+  updated_at: string | null;
+}
+
+export interface MLModelInfo {
+  type: string;             // 'yolo' | 'syndrome' | 'herb'
+  label: string;
+  filename: string;
+  size_mb: number;
+  updated_at: string | null;
+  exists: boolean;
+  accepted_ext: string;     // '.pt' | '.pkl'
+}
+
 export interface GovernanceItem {
   id: number;
   type: 'synonym' | 'tag' | 'template' | 'blacklist';

@@ -164,3 +164,56 @@ export async function getStatistics(): Promise<AdminStatistics> {
     return response.data
 }
 
+
+// ============ AI 配置 API ============
+
+export interface AIConfigResponse { configs: import('@/types').AIConfigItem[] }
+export interface TestLLMResponse { success: boolean; message: string; reply?: string; model?: string }
+export interface MLModelsResponse { models: import('@/types').MLModelInfo[] }
+export interface MLUploadResponse { success: boolean; message: string; size_mb?: number; updated_at?: string }
+
+/**
+ * 获取全部 AI 配置
+ */
+export async function getAIConfig(): Promise<AIConfigResponse> {
+    const res = await apiClient.get<AIConfigResponse>('/api/admin/ai-config/')
+    return res.data
+}
+
+/**
+ * 批量保存 AI 配置
+ */
+export async function saveAIConfig(configs: { key: string; value: string }[]): Promise<{ updated: string[] }> {
+    const res = await apiClient.put<{ updated: string[] }>('/api/admin/ai-config/', { configs })
+    return res.data
+}
+
+/**
+ * 测试 LLM 连接
+ */
+export async function testLLM(): Promise<TestLLMResponse> {
+    const res = await apiClient.post<TestLLMResponse>('/api/admin/ai-config/test-llm/')
+    return res.data
+}
+
+/**
+ * 获取 ML 模型文件信息
+ */
+export async function getMLModels(): Promise<MLModelsResponse> {
+    const res = await apiClient.get<MLModelsResponse>('/api/admin/ml-models/')
+    return res.data
+}
+
+/**
+ * 上传替换 ML 模型文件
+ */
+export async function uploadMLModel(modelType: string, file: File): Promise<MLUploadResponse> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await apiClient.post<MLUploadResponse>(
+        `/api/admin/ml-models/${modelType}/`,
+        form,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
+    return res.data
+}

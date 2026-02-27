@@ -23,6 +23,7 @@ import {
     Bell,
     Menu,
     X,
+    Settings2,
 } from 'lucide-react'
 import type { UserRole } from '@/types'
 
@@ -48,6 +49,7 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '病例管理', href: '/admin/cases', icon: <FileText className="w-5 h-5" /> },
         { label: '健康检查', href: '/admin/health', icon: <Activity className="w-5 h-5" /> },
         { label: '数据治理', href: '/admin/governance', icon: <Database className="w-5 h-5" /> },
+        { label: 'AI 配置', href: '/admin/ai-config', icon: <Settings2 className="w-5 h-5" /> },
     ],
 }
 
