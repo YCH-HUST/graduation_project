@@ -40,21 +40,13 @@
       </view>
     </view>
 
-    <!-- 推荐方剂 -->
+    <!-- 推荐用药 -->
     <view class="card">
-      <text class="card-title">💊 推荐方剂</text>
+      <text class="card-title">💊 推荐用药</text>
       <view class="formula-item" wx:for="{{result.formulas}}" wx:key="name">
         <view class="formula-header">
           <text class="formula-name">{{item.name}}</text>
           <view class="badge badge-approved">{{item.scorePercent}}%</view>
-        </view>
-        <view wx:if="{{item.composition}}" class="formula-row">
-          <text class="formula-label">组成：</text>
-          <text class="formula-value">{{item.composition}}</text>
-        </view>
-        <view wx:if="{{item.indication}}" class="formula-row">
-          <text class="formula-label">功效：</text>
-          <text class="formula-value">{{item.indication}}</text>
         </view>
       </view>
     </view>

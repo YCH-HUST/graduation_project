@@ -459,11 +459,11 @@ export default function ReviewPage() {
                                     </div>
                                 </div>
 
-                                {/* 推荐方剂 */}
+                                {/* 推荐用药 */}
                                 <div>
                                     <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
                                         <Pill className="w-4 h-4 text-teal-500" />
-                                        推荐方剂
+                                        推荐用药
                                     </h4>
                                     <div className="space-y-2">
                                         {editedFormulas.map((formula, index) => (
@@ -528,6 +528,21 @@ export default function ReviewPage() {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* AI 综合分析 */}
+                                {result.llm_explanation && (
+                                    <div>
+                                        <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                            <Activity className="w-4 h-4 text-purple-500" />
+                                            AI 综合分析
+                                        </h4>
+                                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                                {result.llm_explanation}
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* 审核备注 */}
                                 <div className="space-y-2">

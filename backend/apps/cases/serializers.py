@@ -215,41 +215,48 @@ class PipelineRunDetailSerializer(serializers.Serializer):
         
         inference = obj.inference_result_json or {}
         
-        # 转换 syndromes 格式
+        # ── 证候列表（ML 输出：{name, confidence}）──
         syndromes = []
         for s in inference.get('syndromes', []):
             syndromes.append({
                 'name': s.get('name', ''),
-                'score': s.get('confidence', 0),
-                'description': ', '.join(s.get('key_symptoms', []))
+                'score': round(s.get('confidence', 0), 4),
+                'description': '',
             })
         
-        # 转换 formulas 格式
+        # ── 推荐用药（ML 输出：{herb, probability}  → 复用 formulas 字段）──
         formulas = []
-        for p in inference.get('prescriptions', []):
+        for h in inference.get('herbs', []):
             formulas.append({
-                'name': p.get('name', ''),
-                'score': p.get('score', 0),
-                'composition': ', '.join(p.get('composition', [])) if isinstance(p.get('composition'), list) else p.get('composition', ''),
-                'indication': p.get('indication', '')
+                'name': h.get('herb', ''),
+                'score': round(h.get('probability', 0), 4),
+                'indication': '',
             })
         
-        # 提取证据要点
+        # ── 证据要点：从 YOLO detections 提取 ──
         yolo = obj.yolo_result_json or {}
-        tongue_features = yolo.get('tongue_features', {})
         evidence_points = []
-        if tongue_features:
-            if tongue_features.get('color'):
-                evidence_points.append(f"舌质{tongue_features.get('color')}")
-            if tongue_features.get('coating_color'):
-                evidence_points.append(f"苔{tongue_features.get('coating_thickness', '')}{tongue_features.get('coating_color', '')}苔")
+        detections = yolo.get('detections', [])
+        if detections:
+            # 取置信度最高的舌象检测作为证据
+            best = max(detections, key=lambda d: d.get('confidence', 0))
+            class_name = best.get('class_name') or best.get('class', '')
+            conf = best.get('confidence', 0)
+            if class_name:
+                evidence_points.append(f"舌象检测：{class_name}（置信度 {int(conf*100)}%）")
+        
+        # NLP 提取的症状
+        nlp = obj.nlp_result_json or {}
+        extracted_symptoms = nlp.get('symptoms', [])
+        if extracted_symptoms:
+            evidence_points.append(f"AI提取症状：{'、'.join(extracted_symptoms[:8])}")
         
         return {
             'syndromes': syndromes,
             'formulas': formulas,
             'evidence_points': evidence_points,
             'llm_explanation': obj.explanation_text or '',
-            'confidence_score': yolo.get('confidence_score', 0.8)
+            'confidence_score': round(max((s.get('confidence', 0) for s in inference.get('syndromes', [])), default=0), 4),
         }
 
 

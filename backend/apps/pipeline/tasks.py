@@ -12,7 +12,7 @@ import io
 
 from apps.cases.models import Case, CaseAsset
 from apps.pipeline.models import PipelineRun
-from apps.pipeline.clients import yolo_client, nlp_client, syndrome_client, explanation_client
+from apps.pipeline.clients import yolo_client, nlp_client, syndrome_client, explanation_client, YOLO_LABEL_MAP
 from apps.pipeline.yolo_views import run_yolo_detection
 import cv2
 import numpy as np
@@ -75,7 +75,7 @@ def run_pipeline(case_id: str, pipeline_run_id: int):
         pipeline_run.save()
         timing['yolo'] = round(time.time() - stage_start, 2)
         
-        # ========== 阶段 2: NLP 解析 (40->60%) ==========
+        # ========== 阶段 2: LLM 症状提取 (40->60%) ==========
         stage_start = time.time()
         pipeline_run.progress = 50
         pipeline_run.save()
@@ -90,30 +90,46 @@ def run_pipeline(case_id: str, pipeline_run_id: int):
         pipeline_run.save()
         timing['nlp'] = round(time.time() - stage_start, 2)
         
-        # ========== 阶段 3: 辨证推理 (60->85%) ==========
+        # ========== 阶段 3: ML 辨证推理 (60->85%) ==========
         stage_start = time.time()
         pipeline_run.progress = 70
         pipeline_run.save()
         
+        # 从 LLM 提取的症状列表（已标准化）
         symptoms = nlp_result.get('symptoms', [])
         tongue_features = yolo_result.get('tongue_features', {})
         
-        inference_result = syndrome_client.infer(symptoms, tongue_features)
+        # 从 YOLO 检测结果提取英文标签（取置信度最高的）
+        yolo_label = ''
+        detections = yolo_result.get('detections', [])
+        if detections:
+            # 取置信度最高的检测结果，映射到英文标签
+            best = max(detections, key=lambda d: d.get('confidence', 0))
+            cn_name = best.get('class_name', '')
+            yolo_label = YOLO_LABEL_MAP.get(cn_name, '')
+        
+        inference_result = syndrome_client.infer(symptoms, tongue_features, yolo_label)
         
         pipeline_run.inference_result_json = inference_result
         pipeline_run.progress = 85
         pipeline_run.save()
         timing['inference'] = round(time.time() - stage_start, 2)
         
-        # ========== 阶段 4: LLM 解释 (85->100%) ==========
+        # ========== 阶段 4: LLM 综合分析 (85->100%) ==========
         stage_start = time.time()
         pipeline_run.progress = 90
         pipeline_run.save()
         
         syndromes = inference_result.get('syndromes', [])
-        prescriptions = inference_result.get('prescriptions', [])
+        herbs     = inference_result.get('herbs', [])
         
-        explanation_text = explanation_client.generate(syndromes, prescriptions, symptoms)
+        explanation_text = explanation_client.generate(
+            syndromes=syndromes,
+            herbs=herbs,
+            symptoms=symptoms,
+            chief_complaint=case.chief_complaint_text or '',
+            yolo_label=yolo_label,
+        )
         
         pipeline_run.explanation_text = explanation_text
         pipeline_run.progress = 100

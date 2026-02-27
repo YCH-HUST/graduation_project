@@ -1,210 +1,352 @@
 """
-Mock clients for external ML services.
-These clients simulate responses from YOLO, NLP, Syndrome, and Explanation services.
-Replace with real HTTP clients when actual services are available.
+Real clients for ML and LLM services.
+- LLMSymptomExtractClient: 用 SiliconFlow LLM 从主诉提取标准化症状
+- MLInferenceClient: 用 ML 模型预测证型 + 推荐中药
+- LLMAnalysisClient: 用 SiliconFlow LLM 生成综合分析报告
 """
+import os
+import json
+import pickle
+import numpy as np
+import requests
+from typing import Dict, Any, List
+
+from django.conf import settings
+
+# ─── YOLO 中文类名 → ML 模型英文标签映射 ───
+YOLO_LABEL_MAP = {
+    "黑苔":     "black tongue coating",
+    "地图舌":   "map tongue coating",
+    "紫苔":     "purple tongue coating",
+    "红舌黄厚腻苔": "red tongue yellow fur thick greasy fur",
+    "红舌厚腻苔":   "The red tongue is thick and greasy",
+    "白舌厚腻苔":   "The white tongue is thick and greasy",
+}
+
+# SiliconFlow API 配置从 DB 动态读取（保留默认备用，防止 DB 未初始化时就调用）
+_DEFAULT_API_URL = 'https://api.siliconflow.cn/v1/chat/completions'
+_DEFAULT_API_KEY = 'sk-rypfxvahaesmyaaloeevjgdszblhavnlstinhixzomntfnxt'
+_DEFAULT_MODEL   = 'Qwen/Qwen3-235B-A22B-Instruct-2507'
+
+
+def _get_llm_config() -> tuple[str, str, str, float]:
+    """从 DB 读取当前 LLM 配置，返回 (api_url, api_key, model, temperature)"""
+    try:
+        from apps.adminops.models import AIConfig
+        api_url = AIConfig.get('llm_api_url', _DEFAULT_API_URL)
+        api_key = AIConfig.get('llm_api_key', _DEFAULT_API_KEY)
+        model   = AIConfig.get('llm_model_name', _DEFAULT_MODEL)
+        temperature = float(AIConfig.get('llm_temperature', '0.2'))
+    except Exception:
+        api_url, api_key, model, temperature = _DEFAULT_API_URL, _DEFAULT_API_KEY, _DEFAULT_MODEL, 0.2
+    return api_url, api_key, model, temperature
+
+
+def _call_llm(system_prompt: str, user_prompt: str, max_tokens: int = 1024) -> str:
+    """调用 LLM API，配置实时从 DB 读取"""
+    api_url, api_key, model, temperature = _get_llm_config()
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+    }
+    payload = {
+        'model': model,
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user',   'content': user_prompt},
+        ],
+        'max_tokens': max_tokens,
+        'temperature': temperature,
+        'stream': False,
+        'enable_thinking': False,
+    }
+    resp = requests.post(api_url, headers=headers, json=payload, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    return data['choices'][0]['message']['content'].strip()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Client 1：症状提取（替换 MockNLPClient）
+# ─────────────────────────────────────────────────────────────────────────────
+class LLMSymptomExtractClient:
+    """
+    用 LLM 从主诉 + 现病史中提取标准化症状列表。
+    输出只能包含症状词典（top_symptoms.json）中已有的词条。
+    """
+
+    def __init__(self):
+        self._symptom_list: List[str] | None = None
+
+    def _get_symptom_list(self) -> List[str]:
+        if self._symptom_list is None:
+            model_dir = os.path.join(settings.BASE_DIR, '..', 'machinelearning', 'tcm_syndrome_model')
+            model_dir = os.path.normpath(model_dir)
+            symptom_path = os.path.join(model_dir, 'top_symptoms.json')
+            with open(symptom_path, encoding='utf-8') as f:
+                self._symptom_list = json.load(f)
+        return self._symptom_list
+
+    def parse(self, chief_complaint: str, questionnaire: Dict) -> Dict[str, Any]:
+        """
+        解析主诉 + 现病史为标准化症状列表。
+
+        Returns:
+            {
+                'success': True,
+                'symptoms': ['咳嗽', '喘息', ...],   # 标准化症状名称列表
+                'raw_text': '...'                    # 原始主诉文本（留存）
+            }
+        """
+        symptom_list = self._get_symptom_list()
+        symptom_str = "、".join(symptom_list)
+
+        system_prompt = (
+            "你是一名中医诊疗助手，负责从患者主诉和现病史中提取标准化中医症状。\n"
+            "规则：\n"
+            "1. 只能从以下症状词典中选择词条，不得自己创造新词：\n"
+            f"【症状词典】{symptom_str}\n"
+            "2. 严格返回 JSON 格式，格式为：{\"symptoms\": [\"症状1\", \"症状2\", ...]}\n"
+            "3. 只返回 JSON，不要有任何其他内容或解释。\n"
+            "4. 如果找不到匹配的症状，返回：{\"symptoms\": []}"
+        )
+
+        # 构建用户输入文本
+        lines = []
+        if chief_complaint:
+            lines.append(f"主诉：{chief_complaint}")
+        present_illness = questionnaire.get('present_illness', '') if questionnaire else ''
+        if present_illness:
+            lines.append(f"现病史：{present_illness}")
+        user_prompt = "\n".join(lines) if lines else "（无主诉信息）"
+
+        try:
+            # 从 DB 读取 System Prompt 模版（支持 {symptom_list} 占位符）
+            from apps.adminops.models import AIConfig
+            system_template = AIConfig.get(
+                'prompt_symptom_extract_system',
+                (
+                    "你是一名中医诊疗助手，负责从患者主诉和现病史中提取标准化中医症状。\n"
+                    "规则：\n1. 只能从以下症状词典中选择词条：\n【症状词典】{symptom_list}\n"
+                    "2. 返回 JSON：{{\"symptoms\": [...]}}\n3. 只返回 JSON。"
+                )
+            )
+            system_prompt = system_template.replace('{symptom_list}', symptom_str)
+
+            # 构建用户输入文本
+            lines = []
+            if chief_complaint:
+                lines.append(f"主诉：{chief_complaint}")
+            present_illness = questionnaire.get('present_illness', '') if questionnaire else ''
+            if present_illness:
+                lines.append(f"现病史：{present_illness}")
+            user_prompt = "\n".join(lines) if lines else "（无主诉信息）"
+
+            raw = _call_llm(system_prompt, user_prompt, max_tokens=512)
+            # 尝试从回复中提取 JSON（防止 LLM 带多余文字）
+            start = raw.find('{')
+            end = raw.rfind('}') + 1
+            if start >= 0 and end > start:
+                parsed = json.loads(raw[start:end])
+            else:
+                parsed = {"symptoms": []}
+
+            # 过滤：只保留词典中存在的症状
+            valid_set = set(symptom_list)
+            symptoms = [s for s in parsed.get('symptoms', []) if s in valid_set]
+        except Exception as e:
+            print(f"[LLMSymptomExtractClient] Error: {e}")
+            symptoms = []
+
+        return {
+            'success': True,
+            'symptoms': symptoms,
+            'raw_text': user_prompt,
+        }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Client 2：ML 推理（替换 MockSyndromeClient）
+# ─────────────────────────────────────────────────────────────────────────────
+class MLInferenceClient:
+    """
+    加载证型预测模型和中药预测模型，对症状列表 + YOLO标签进行推理。
+    """
+
+    def __init__(self):
+        self._syndrome_model = None
+        self._herb_model = None
+        self._syndrome_mlb_symptom = None
+        self._syndrome_mlb_yolo = None
+        self._syndrome_mlb_label = None
+        self._herb_mlb_symptom = None
+        self._herb_mlb_yolo = None
+        self._herb_mlb_herb = None
+        self._symptom_list = None
+
+    def _load_models(self):
+        if self._syndrome_model is not None:
+            return
+
+        base = os.path.normpath(os.path.join(settings.BASE_DIR, '..', 'machinelearning'))
+
+        # 证型模型
+        sdir = os.path.join(base, 'tcm_syndrome_model')
+        with open(os.path.join(sdir, 'model.pkl'),       'rb') as f: self._syndrome_model       = pickle.load(f)
+        with open(os.path.join(sdir, 'mlb_symptom.pkl'), 'rb') as f: self._syndrome_mlb_symptom = pickle.load(f)
+        with open(os.path.join(sdir, 'mlb_yolo.pkl'),   'rb') as f: self._syndrome_mlb_yolo    = pickle.load(f)
+        with open(os.path.join(sdir, 'mlb_label.pkl'),  'rb') as f: self._syndrome_mlb_label   = pickle.load(f)
+        with open(os.path.join(sdir, 'top_symptoms.json'), encoding='utf-8') as f:
+            self._symptom_list = json.load(f)
+
+        # 中药模型
+        hdir = os.path.join(base, 'tcm_herb_model')
+        with open(os.path.join(hdir, 'model.pkl'),       'rb') as f: self._herb_model       = pickle.load(f)
+        with open(os.path.join(hdir, 'mlb_symptom.pkl'), 'rb') as f: self._herb_mlb_symptom = pickle.load(f)
+        with open(os.path.join(hdir, 'mlb_yolo.pkl'),   'rb') as f: self._herb_mlb_yolo    = pickle.load(f)
+        with open(os.path.join(hdir, 'mlb_herb.pkl'),   'rb') as f: self._herb_mlb_herb    = pickle.load(f)
+
+        print("[MLInferenceClient] Models loaded successfully.")
+
+    def infer(self, symptoms: list, tongue_features: Dict, yolo_label: str = '') -> Dict[str, Any]:
+        """
+        执行 ML 推理。
+
+        Args:
+            symptoms:       标准化症状名称列表（字符串）
+            tongue_features: YOLO 舌象特征字典（来自 yolo_result_json）
+            yolo_label:     ML 模型使用的英文 YOLO 标签（可为空）
+
+        Returns:
+            {
+                'success': True,
+                'syndromes': [{'name': '痰热壅肺', 'confidence': 0.75}, ...],
+                'herbs':     [{'herb': '茯苓', 'probability': 0.82}, ...],
+            }
+        """
+        self._load_models()
+
+        valid_set = set(self._symptom_list)
+        valid_syms = [s for s in symptoms if s in valid_set]
+
+        def build_X(mlb_symptom, mlb_yolo, syms, label):
+            X_sym  = mlb_symptom.transform([[s for s in syms]])
+            X_yolo = mlb_yolo.transform([[label.strip()] if label.strip() else []])
+            return np.hstack([X_sym, X_yolo])
+
+        # ── 证型预测 ──
+        X_s = build_X(self._syndrome_mlb_symptom, self._syndrome_mlb_yolo, valid_syms, yolo_label)
+        proba_s = self._syndrome_model.predict_proba(X_s)[0]
+        syndromes = sorted(
+            [{'name': l, 'confidence': round(float(p), 4)}
+             for l, p in zip(self._syndrome_mlb_label.classes_, proba_s) if p >= 0.3],
+            key=lambda x: -x['confidence']
+        )
+
+        # ── 中药预测 ──
+        X_h = build_X(self._herb_mlb_symptom, self._herb_mlb_yolo, valid_syms, yolo_label)
+        proba_h = self._herb_model.predict_proba(X_h)[0]
+        herbs = sorted(
+            [{'herb': h, 'probability': round(float(p), 4)}
+             for h, p in zip(self._herb_mlb_herb.classes_, proba_h) if p >= 0.5],
+            key=lambda x: -x['probability']
+        )
+
+        return {
+            'success': True,
+            'syndromes': syndromes,
+            'herbs': herbs,
+        }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Client 3：AI 综合分析（替换 MockExplanationClient）
+# ─────────────────────────────────────────────────────────────────────────────
+class LLMAnalysisClient:
+    """
+    用 LLM 生成综合诊疗分析报告。
+    输入：主诉、舌象、ML 预测的证型 + 中药
+    """
+
+    SYSTEM_PROMPT = (
+        "你是一名资深中医师，请根据以下患者信息给出简洁的综合诊疗分析。\n"
+        "输出格式（严格按此结构）：\n"
+        "【证候分析】\n"
+        "逐条说明主要证候及其辨证依据，每条不超过2句。\n\n"
+        "【推荐用药】\n"
+        "列出主要推荐药物及其功效，简明扼要，每味药一行。\n\n"
+        "【调护建议】\n"
+        "给出3条生活调护建议，面向患者，语言通俗易懂。\n\n"
+        "注意：语言简洁专业，总字数不超过500字。"
+    )
+
+    def generate(self, syndromes: list, herbs: list, symptoms: list,
+                 chief_complaint: str = '', yolo_label: str = '') -> str:
+        """
+        生成综合分析文本。
+
+        Args:
+            syndromes: 证型列表 [{'name': ..., 'confidence': ...}]
+            herbs:     中药列表 [{'herb': ..., 'probability': ...}]
+            symptoms:  标准化症状列表
+            chief_complaint: 主诉原文
+            yolo_label: YOLO 舌象标签（英文）
+
+        Returns:
+            综合分析文本字符串
+        """
+        # 构建用户输入
+        syndrome_text = "、".join(
+            [f"{s['name']}（{int(s['confidence']*100)}%）" for s in syndromes[:5]]
+        ) or "暂无"
+
+        herb_text = "、".join([h['herb'] for h in herbs[:20]]) or "暂无"
+        symptom_text = "、".join(symptoms[:15]) or "暂无"
+
+        # YOLO 标签中文化
+        yolo_cn_map = {v: k for k, v in YOLO_LABEL_MAP.items()}
+        tongue_text = yolo_cn_map.get(yolo_label, yolo_label or "未检测到")
+
+        user_prompt = (
+            f"患者主诉：{chief_complaint or '无'}\n"
+            f"主要症状：{symptom_text}\n"
+            f"舌象：{tongue_text}\n"
+            f"AI 辨证结果：{syndrome_text}\n"
+            f"推荐药物：{herb_text}"
+        )
+
+        try:
+            return _call_llm(self.SYSTEM_PROMPT, user_prompt, max_tokens=800)
+        except Exception as e:
+            print(f"[LLMAnalysisClient] Error: {e}")
+            return f"【证候分析】\n{syndrome_text}\n\n【推荐用药】\n{herb_text}\n\n【调护建议】\n请遵医嘱。"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 单例实例
+# ─────────────────────────────────────────────────────────────────────────────
+nlp_client = LLMSymptomExtractClient()
+syndrome_client = MLInferenceClient()
+explanation_client = LLMAnalysisClient()
+
+
+# 保留 yolo_client（Mock 保持不变，真实 YOLO 走 yolo_views.py）
 import time
 import random
 from typing import Dict, Any
 
 
 class MockYOLOClient:
-    """
-    模拟 YOLO 舌象分析服务
-    产出：舌象分割掩码、标注图像、分析结果
-    """
-    
+    """YOLO Mock（仅在无真实图像时作为后备）"""
+
     def predict(self, image_path: str) -> Dict[str, Any]:
-        """
-        模拟 YOLO 推理
-        
-        Args:
-            image_path: 原始舌象图片路径
-            
-        Returns:
-            包含分析结果的字典
-        """
-        # 模拟处理延迟
-        time.sleep(random.uniform(0.5, 1.5))
-        
+        time.sleep(random.uniform(0.1, 0.3))
         return {
             'success': True,
-            'detections': [
-                {
-                    'class': 'tongue',
-                    'confidence': 0.95,
-                    'bbox': [100, 50, 400, 350],
-                },
-                {
-                    'class': 'coating',
-                    'confidence': 0.88,
-                    'type': '薄白苔',
-                }
-            ],
-            'tongue_features': {
-                'color': '淡红',
-                'shape': '正常',
-                'coating_color': '白',
-                'coating_thickness': '薄',
-                'moisture': '润',
-                'cracks': False,
-                'teeth_marks': False,
-            },
-            'confidence_score': 0.92,
+            'detections': [],
+            'tongue_features': {},
+            'confidence_score': 0.0,
         }
 
 
-class MockNLPClient:
-    """
-    模拟 LLM 问诊解析服务
-    将问诊问卷和主诉解析为结构化症状
-    """
-    
-    def parse(self, chief_complaint: str, questionnaire: Dict) -> Dict[str, Any]:
-        """
-        解析问诊信息为结构化症状
-        
-        Args:
-            chief_complaint: 主诉文本
-            questionnaire: 问诊问卷 JSON
-            
-        Returns:
-            结构化症状信息
-        """
-        # 模拟处理延迟
-        time.sleep(random.uniform(0.3, 0.8))
-        
-        return {
-            'success': True,
-            'symptoms': [
-                {'name': '头痛', 'severity': '轻度', 'duration': '3天'},
-                {'name': '失眠', 'severity': '中度', 'duration': '1周'},
-                {'name': '口干', 'severity': '轻度', 'duration': '3天'},
-                {'name': '乏力', 'severity': '轻度', 'duration': '1周'},
-            ],
-            'chief_complaint_parsed': {
-                'main_symptom': '头痛',
-                'onset': '3天前',
-                'character': '胀痛',
-                'location': '两侧太阳穴',
-            },
-            'tongue_description': '舌淡红，苔薄白',
-            'pulse_description': '脉弦细',
-        }
-
-
-class MockSyndromeClient:
-    """
-    模拟辨证推理服务
-    根据症状和舌象进行证候辨识
-    """
-    
-    def infer(self, symptoms: list, tongue_features: Dict) -> Dict[str, Any]:
-        """
-        辨证推理
-        
-        Args:
-            symptoms: 症状列表
-            tongue_features: 舌象特征
-            
-        Returns:
-            证候诊断结果和方剂推荐
-        """
-        # 模拟处理延迟
-        time.sleep(random.uniform(0.5, 1.0))
-        
-        return {
-            'success': True,
-            'syndromes': [
-                {
-                    'name': '肝郁气滞',
-                    'confidence': 0.85,
-                    'key_symptoms': ['头痛', '胀痛', '情志不舒'],
-                },
-                {
-                    'name': '心脾两虚',
-                    'confidence': 0.72,
-                    'key_symptoms': ['失眠', '乏力', '心悸'],
-                },
-                {
-                    'name': '阴虚火旺',
-                    'confidence': 0.58,
-                    'key_symptoms': ['口干', '失眠'],
-                },
-            ],
-            'prescriptions': [
-                {
-                    'name': '逍遥散',
-                    'score': 0.88,
-                    'composition': ['柴胡', '白芍', '当归', '茯苓', '白术', '甘草', '薄荷', '生姜'],
-                    'indication': '肝郁气滞，疏肝解郁',
-                },
-                {
-                    'name': '归脾汤',
-                    'score': 0.75,
-                    'composition': ['人参', '白术', '茯神', '黄芪', '龙眼肉', '酸枣仁', '当归', '远志'],
-                    'indication': '心脾两虚，益气补血',
-                },
-            ],
-            'treatment_principle': '疏肝解郁，养心安神',
-        }
-
-
-class MockExplanationClient:
-    """
-    模拟 LLM 解释生成服务
-    生成诊断解释和用药建议
-    """
-    
-    def generate(self, syndromes: list, prescriptions: list, symptoms: list) -> str:
-        """
-        生成诊断解释
-        
-        Args:
-            syndromes: 证候列表
-            prescriptions: 方剂列表
-            symptoms: 症状列表
-            
-        Returns:
-            条目化的诊断解释文本
-        """
-        # 模拟处理延迟
-        time.sleep(random.uniform(0.8, 1.5))
-        
-        explanation = """
-【诊断分析】
-1. 主要证候：肝郁气滞证
-   - 患者表现为头痛（胀痛性质）、失眠、口干等症状
-   - 舌象显示舌淡红、苔薄白，符合肝郁气滞的典型表现
-   - 综合分析，肝气郁结是主要病机
-
-2. 次要证候：心脾两虚证
-   - 乏力、失眠等症状提示心脾功能不足
-   - 需要在主方基础上兼顾补益
-
-【治疗方案】
-1. 治法：疏肝解郁，养心安神
-2. 主方：逍遥散加减
-   - 柴胡 10g（疏肝解郁）
-   - 白芍 15g（养血柔肝）
-   - 当归 10g（养血和营）
-   - 茯苓 15g（健脾宁心）
-   - 白术 10g（健脾益气）
-   - 甘草 6g（调和诸药）
-   - 薄荷 3g（疏散郁热）
-   - 生姜 3片（温中和胃）
-
-【注意事项】
-1. 调畅情志，保持心情舒畅
-2. 规律作息，避免熬夜
-3. 饮食清淡，忌辛辣刺激
-4. 适当运动，以散步、太极拳为宜
-"""
-        return explanation.strip()
-
-
-# 创建客户端单例
 yolo_client = MockYOLOClient()
-nlp_client = MockNLPClient()
-syndrome_client = MockSyndromeClient()
-explanation_client = MockExplanationClient()
