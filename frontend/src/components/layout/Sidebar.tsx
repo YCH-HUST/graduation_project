@@ -16,7 +16,6 @@ import {
     Settings,
     Activity,
     LogOut,
-    Database,
     User,
     Users,
     BarChart3,
@@ -48,7 +47,6 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '用户管理', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
         { label: '病例管理', href: '/admin/cases', icon: <FileText className="w-5 h-5" /> },
         { label: '健康检查', href: '/admin/health', icon: <Activity className="w-5 h-5" /> },
-        { label: '数据治理', href: '/admin/governance', icon: <Database className="w-5 h-5" /> },
         { label: 'AI 配置', href: '/admin/ai-config', icon: <Settings2 className="w-5 h-5" /> },
     ],
 }

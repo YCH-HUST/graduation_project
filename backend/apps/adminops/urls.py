@@ -4,10 +4,9 @@ URL configuration for adminops app.
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    HealthCheckView, 
-    GovernanceViewSet, 
-    UserViewSet, 
-    CaseViewSet, 
+    HealthCheckView,
+    UserViewSet,
+    CaseViewSet,
     StatisticsView
 )
 from .ai_config_views import (
@@ -18,7 +17,6 @@ from .ai_config_views import (
 )
 
 router = DefaultRouter()
-router.register(r'admin/governance', GovernanceViewSet, basename='governance')
 router.register(r'admin/users', UserViewSet, basename='admin-users')
 router.register(r'admin/cases', CaseViewSet, basename='admin-cases')
 
@@ -33,3 +31,4 @@ urlpatterns = [
     path('admin/ml-models/<str:model_type>/', MLModelUploadView.as_view(), name='ml_model_upload'),
     path('', include(router.urls)),
 ]
+
