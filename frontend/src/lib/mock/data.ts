@@ -94,7 +94,7 @@ export const mockAssets: Asset[] = [
 // Mock 病例数据
 export const mockCases: Case[] = [
     {
-        id: 1,
+        id: 'case-001',
         patient_id: 1,
         patient_name: '张三',
         tongue_image: '/mock/tongue_raw.jpg',
@@ -113,7 +113,7 @@ export const mockCases: Case[] = [
         updated_at: '2024-01-13T10:35:00Z',
     },
     {
-        id: 2,
+        id: 'case-002',
         patient_id: 1,
         patient_name: '张三',
         tongue_image: '/mock/tongue_raw.jpg',
@@ -130,7 +130,7 @@ export const mockCases: Case[] = [
         updated_at: '2024-01-10T16:00:00Z',
     },
     {
-        id: 3,
+        id: 'case-003',
         patient_id: 4,
         patient_name: '王五',
         tongue_image: '/mock/tongue_raw.jpg',
@@ -151,7 +151,7 @@ export const mockCases: Case[] = [
 // Mock 流水线运行状态
 export const mockPipelineRun: PipelineRun = {
     id: 1,
-    case_id: 1,
+    case_id: 'case-001',
     status: 'completed',
     progress: 100,
     current_stage: 'completed',

@@ -140,7 +140,7 @@ export default function DoctorDashboardPage() {
         setCurrentPage(1)
     }
 
-    const handleViewCase = (caseId: number) => {
+    const handleViewCase = (caseId: string) => {
         router.push(`/doctor/review/${caseId}`)
     }
 
