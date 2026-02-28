@@ -106,6 +106,10 @@ Page({
         wx.switchTab({ url: '/pages/profile/profile' })
     },
 
+    onMedication() {
+        wx.navigateTo({ url: '/pages/medication/medication' })
+    },
+
     onPullDownRefresh() {
         this.loadData().then(() => wx.stopPullDownRefresh())
     },

@@ -1,0 +1,140 @@
+.container {
+  padding: 30rpx;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.date {
+  font-size: 24rpx;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+/* 时段打卡项 */
+.slot-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.slot-item:last-child {
+  border-bottom: none;
+}
+
+.slot-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.slot-icon {
+  font-size: 40rpx;
+}
+
+.slot-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #334155;
+}
+
+.slot-status {
+  display: block;
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 4rpx;
+}
+
+.slot-item.taken .slot-name {
+  color: #10b981;
+}
+
+.check-btn {
+  margin: 0;
+  padding: 0 36rpx;
+  height: 64rpx;
+  line-height: 64rpx;
+  font-size: 24rpx;
+  border-radius: 32rpx;
+  font-weight: 600;
+}
+
+.btn-active {
+  background: linear-gradient(135deg, #10b981, #14b8a6);
+  color: #fff;
+}
+
+.btn-done {
+  background-color: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* 反馈卡片 */
+.feedback-input {
+  width: 100%;
+  height: 200rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+  font-size: 26rpx;
+  margin-bottom: 24rpx;
+}
+
+.submit-feedback {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  color: #fff;
+  font-size: 28rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+}
+
+/* 状态页 */
+.loading-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 200rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  color: #64748b;
+  font-weight: bold;
+  margin-top: 30rpx;
+}
+
+.empty-sub {
+  font-size: 24rpx;
+  color: #94a3b8;
+  margin-top: 10rpx;
+}

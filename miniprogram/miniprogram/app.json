@@ -4,7 +4,8 @@
     "pages/home/home",
     "pages/new-case/new-case",
     "pages/case-detail/case-detail",
-    "pages/profile/profile"
+    "pages/profile/profile",
+    "pages/medication/medication"
   ],
   "window": {
     "navigationBarTextStyle": "white",

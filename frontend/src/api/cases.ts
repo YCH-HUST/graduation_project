@@ -154,3 +154,16 @@ export async function submitReview(
     )
     return response.data
 }
+
+/**
+ * 获取患者历史病例数据（病程对比用）
+ */
+export async function getPatientHistory(patientId: number): Promise<any[]> {
+    if (isMockMode()) {
+        await delay(300)
+        return []
+    }
+
+    const response = await apiClient.get(`/api/cases/patient-history/${patientId}/`)
+    return response.data
+}

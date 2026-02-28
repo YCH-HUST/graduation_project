@@ -49,6 +49,18 @@
     </view>
   </view>
 
+  <!-- 健康管理快捷入口 -->
+  <view class="card medication-entry" bindtap="onMedication">
+    <view class="entry-left">
+      <text class="entry-icon">💊</text>
+      <view class="entry-info">
+        <text class="entry-title">用药打卡与反馈</text>
+        <text class="entry-desc">记录每日服药情况，反馈身体变化</text>
+      </view>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
   <!-- 最近病例 -->
   <view class="card">
     <view class="section-header">

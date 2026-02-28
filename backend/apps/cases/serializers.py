@@ -249,7 +249,16 @@ class PipelineRunDetailSerializer(serializers.Serializer):
         nlp = obj.nlp_result_json or {}
         extracted_symptoms = nlp.get('symptoms', [])
         if extracted_symptoms:
-            evidence_points.append(f"AI提取症状：{'、'.join(extracted_symptoms[:8])}")
+            # symptoms 可能是字符串列表，也可能是 dict 列表（取 name/text 字段）
+            symptom_strs = []
+            for s in extracted_symptoms[:8]:
+                if isinstance(s, str):
+                    symptom_strs.append(s)
+                elif isinstance(s, dict):
+                    symptom_strs.append(s.get('name') or s.get('text') or str(s))
+            if symptom_strs:
+                evidence_points.append(f"AI提取症状：{'、'.join(symptom_strs)}")
+
         
         return {
             'syndromes': syndromes,

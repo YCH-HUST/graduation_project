@@ -26,27 +26,21 @@
     <view class="card">
       <view class="card-title-row">
         <text class="card-title">🩺 证候分析</text>
-        <text class="conf-text">置信度 {{result.confidencePercent}}%</text>
       </view>
-      <view class="syndrome-item" wx:for="{{result.syndromes}}" wx:key="name">
-        <view class="syndrome-header">
-          <text class="syndrome-name">{{item.name}}</text>
-          <text class="syndrome-score">{{item.scorePercent}}%</text>
+      <view class="tag-grid">
+        <view class="tag tag-syndrome" wx:for="{{result.syndromes}}" wx:key="name">
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="tag-sub">{{item.description}}</text>
         </view>
-        <view class="progress-wrap">
-          <view class="progress-bar" style="width:{{item.scorePercent}}%"></view>
-        </view>
-        <text class="syndrome-desc" wx:if="{{item.description}}">{{item.description}}</text>
       </view>
     </view>
 
     <!-- 推荐用药 -->
     <view class="card">
       <text class="card-title">💊 推荐用药</text>
-      <view class="formula-item" wx:for="{{result.formulas}}" wx:key="name">
-        <view class="formula-header">
-          <text class="formula-name">{{item.name}}</text>
-          <view class="badge badge-approved">{{item.scorePercent}}%</view>
+      <view class="tag-grid">
+        <view class="tag tag-formula" wx:for="{{result.formulas}}" wx:key="name">
+          <text>{{item.name}}</text>
         </view>
       </view>
     </view>

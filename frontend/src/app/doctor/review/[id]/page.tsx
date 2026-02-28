@@ -2,11 +2,11 @@
 
 /**
  * 医生端 - 病例审核页面
- * 三栏布局：患者资料 | 图片可视化 | 诊断与修订
+ * 粘性分栏布局：左侧固定（患者信息 + 可视化） | 右侧滚动（病程对比 + 诊断与修订）
  */
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getCaseDetail, submitReview } from '@/api/cases'
+import { getCaseDetail, submitReview, getPatientHistory } from '@/api/cases'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -38,9 +38,23 @@ import {
     Trash2,
     Save,
     Undo,
+    TrendingUp,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import type { CaseDetailResponse, ReviewDecision, Syndrome, Formula, AssetType } from '@/types'
+import {
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+} from 'recharts'
+
+// 配色
+const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 export default function ReviewPage() {
     const params = useParams()
@@ -56,8 +70,11 @@ export default function ReviewPage() {
     const [reviewNote, setReviewNote] = useState('')
     const [editedSyndromes, setEditedSyndromes] = useState<Syndrome[]>([])
     const [editedFormulas, setEditedFormulas] = useState<Formula[]>([])
-    const [selectedImage, setSelectedImage] = useState<string | null>(null)
     const [isEditing, setIsEditing] = useState(false)
+
+    // 病程对比
+    const [historyData, setHistoryData] = useState<any[]>([])
+    const [historyLabels, setHistoryLabels] = useState<string[]>([])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -71,25 +88,50 @@ export default function ReviewPage() {
                     setEditedSyndromes([...response.latest_run.diagnosis_result.syndromes])
                     setEditedFormulas([...response.latest_run.diagnosis_result.formulas])
                 }
+
+                // 加载病程对比数据
+                if (response.case?.patient_id) {
+                    try {
+                        const history = await getPatientHistory(response.case.patient_id)
+                        if (history && history.length > 0) {
+                            // 收集所有证型名称
+                            const allNames = new Set<string>()
+                            history.forEach((h: any) => {
+                                h.syndromes?.forEach((s: any) => allNames.add(s.name))
+                            })
+                            const labels = Array.from(allNames).slice(0, 5) // 最多5条线
+
+                            // 构建图表数据
+                            const chartData = history.map((h: any) => {
+                                const row: any = { date: h.date }
+                                labels.forEach((name) => {
+                                    const found = h.syndromes?.find((s: any) => s.name === name)
+                                    row[name] = found ? Math.round(found.score * 100) : 0
+                                })
+                                return row
+                            })
+
+                            setHistoryData(chartData)
+                            setHistoryLabels(labels)
+                        }
+                    } catch {
+                        // 历史数据加载失败不影响主流程
+                    }
+                }
             } catch (err: any) {
                 console.error('Fetch case detail error:', err)
                 setError(err.message || '加载失败')
-                toast.error('加载失败', {
-                    description: err.message || '请刷新页面重试',
-                })
+                toast.error('加载失败', { description: err.message || '请刷新页面重试' })
             } finally {
                 setIsLoading(false)
             }
         }
 
-        if (caseId) {
-            fetchData()
-        }
+        if (caseId) fetchData()
     }, [caseId])
 
     const handleSubmitReview = async (decision: ReviewDecision) => {
         setIsSubmitting(true)
-
         try {
             await submitReview(caseId, {
                 decision,
@@ -97,77 +139,32 @@ export default function ReviewPage() {
                 edited_formulas: decision === 'revise' ? editedFormulas : undefined,
                 note: reviewNote || undefined,
             })
-
             toast.success(
                 decision === 'approve' ? '审核通过' : decision === 'reject' ? '已驳回' : '已修订',
                 { description: '正在返回列表...' }
             )
-
-            setTimeout(() => {
-                router.push('/doctor/dashboard')
-            }, 1000)
+            setTimeout(() => router.push('/doctor/dashboard'), 1000)
         } catch (err: any) {
-            console.error('Submit review error:', err)
-            toast.error('提交失败', {
-                description: err.message || '请重试',
-            })
+            toast.error('提交失败', { description: err.message || '请重试' })
         } finally {
             setIsSubmitting(false)
         }
     }
 
     // 编辑处理函数
-    const handleAddSyndrome = () => {
-        setEditedSyndromes([...editedSyndromes, { name: '', score: 0.5, description: '' }])
-    }
-
-    const handleRemoveSyndrome = (index: number) => {
-        const newSyndromes = [...editedSyndromes]
-        newSyndromes.splice(index, 1)
-        setEditedSyndromes(newSyndromes)
-    }
-
-    const handleUpdateSyndrome = (index: number, field: keyof Syndrome, value: any) => {
-        const newSyndromes = [...editedSyndromes]
-        newSyndromes[index] = { ...newSyndromes[index], [field]: value }
-        setEditedSyndromes(newSyndromes)
-    }
-
-    const handleAddFormula = () => {
-        setEditedFormulas([...editedFormulas, { name: '', score: 0.5, indication: '' }])
-    }
-
-    const handleRemoveFormula = (index: number) => {
-        const newFormulas = [...editedFormulas]
-        newFormulas.splice(index, 1)
-        setEditedFormulas(newFormulas)
-    }
-
-    const handleUpdateFormula = (index: number, field: keyof Formula, value: any) => {
-        const newFormulas = [...editedFormulas]
-        newFormulas[index] = { ...newFormulas[index], [field]: value }
-        setEditedFormulas(newFormulas)
-    }
-
-    const toggleEditMode = () => {
-        if (isEditing) {
-            setIsEditing(false)
-        } else {
-            setIsEditing(true)
-        }
-    }
+    const handleAddSyndrome = () => setEditedSyndromes([...editedSyndromes, { name: '', score: 0.5, description: '' }])
+    const handleRemoveSyndrome = (i: number) => { const a = [...editedSyndromes]; a.splice(i, 1); setEditedSyndromes(a) }
+    const handleUpdateSyndrome = (i: number, f: keyof Syndrome, v: any) => { const a = [...editedSyndromes]; a[i] = { ...a[i], [f]: v }; setEditedSyndromes(a) }
+    const handleAddFormula = () => setEditedFormulas([...editedFormulas, { name: '', score: 0.5, indication: '' }])
+    const handleRemoveFormula = (i: number) => { const a = [...editedFormulas]; a.splice(i, 1); setEditedFormulas(a) }
+    const handleUpdateFormula = (i: number, f: keyof Formula, v: any) => { const a = [...editedFormulas]; a[i] = { ...a[i], [f]: v }; setEditedFormulas(a) }
 
     const getAssetTypeName = (type: AssetType): string => {
-        const typeMap: Record<AssetType, string> = {
-            raw: '原始图片',
-            mask: '分割掩码',
-            heatmap: '热力图',
-            annotated: '标注结果',
-        }
-        return typeMap[type] || type
+        const map: Record<AssetType, string> = { raw: '原始图片', mask: '分割掩码', heatmap: '热力图', annotated: '标注结果' }
+        return map[type] || type
     }
 
-    // 加载中状态
+    // 加载中
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
@@ -179,17 +176,15 @@ export default function ReviewPage() {
         )
     }
 
-    // 错误状态
+    // 错误
     if (error || !data) {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <Card className="max-w-md w-full">
                     <CardContent className="pt-6 text-center">
                         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                            加载失败
-                        </h3>
-                        <p className="text-slate-500 dark:text-slate-400 mb-4">{error || '未找到病例'}</p>
+                        <h3 className="text-lg font-semibold mb-2">加载失败</h3>
+                        <p className="text-slate-500 mb-4">{error || '未找到病例'}</p>
                         <Button onClick={() => router.push('/doctor/dashboard')}>返回列表</Button>
                     </CardContent>
                 </Card>
@@ -212,7 +207,7 @@ export default function ReviewPage() {
                     </Button>
                     <div>
                         <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
-                            病例审核 #{caseId}
+                            病例审核
                         </h1>
                         <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
                             创建于 {formatDateTime(caseData.created_at)}
@@ -220,426 +215,372 @@ export default function ReviewPage() {
                     </div>
                 </div>
                 <Badge
-                    variant={
-                        caseData.status === 'pending_review'
-                            ? 'warning'
-                            : caseData.status === 'approved'
-                                ? 'success'
-                                : 'secondary'
-                    }
+                    variant={caseData.status === 'pending_review' ? 'warning' : caseData.status === 'approved' ? 'success' : 'secondary'}
                     className="text-sm px-3 py-1"
                 >
                     {statusInfo.text}
                 </Badge>
             </div>
 
-            {/* 三栏布局 */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 左栏：患者资料与问诊摘要 */}
-                <Card className="lg:row-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <User className="w-5 h-5 text-blue-500" />
-                            患者信息
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-3">
-                            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                <p className="text-sm text-slate-500 dark:text-slate-400">患者 ID</p>
-                                <p className="font-medium text-slate-900 dark:text-slate-100">
-                                    {caseData.patient_id}
-                                </p>
-                            </div>
-                            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                <p className="text-sm text-slate-500 dark:text-slate-400">患者姓名</p>
-                                <p className="font-medium text-slate-900 dark:text-slate-100">
-                                    {caseData.patient_name || '未知'}
-                                </p>
-                            </div>
-                        </div>
+            {/* ===== 粘性分栏布局 ===== */}
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
 
-                        <hr className="border-slate-200 dark:border-slate-700" />
+                {/* ── 左侧固定栏：患者信息 + 可视化 ── */}
+                <div className="w-full lg:w-[380px] lg:flex-shrink-0 lg:sticky lg:top-4 space-y-6">
+                    {/* 患者信息 */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <User className="w-5 h-5 text-blue-500" />
+                                患者信息
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-3">
+                                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">患者姓名</p>
+                                    <p className="font-medium text-slate-900 dark:text-slate-100">
+                                        {caseData.patient_name || '未知'}
+                                    </p>
+                                </div>
+                            </div>
 
-                        <div>
-                            <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-amber-500" />
-                                问诊摘要
-                            </h4>
-                            <div className="space-y-3 text-sm">
-                                <div>
-                                    <p className="text-slate-500 dark:text-slate-400">主诉</p>
-                                    <p className="text-slate-900 dark:text-slate-100">
-                                        {caseData.questionnaire.chief_complaint || '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-slate-500 dark:text-slate-400">现病史</p>
-                                    <p className="text-slate-900 dark:text-slate-100">
-                                        {caseData.questionnaire.present_illness || '-'}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-slate-500 dark:text-slate-400">既往史</p>
-                                    <p className="text-slate-900 dark:text-slate-100">
-                                        {caseData.questionnaire.past_history || '-'}
-                                    </p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <p className="text-slate-500 dark:text-slate-400">睡眠</p>
-                                        <p className="text-slate-900 dark:text-slate-100">
-                                            {caseData.questionnaire.sleep_quality || '-'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-500 dark:text-slate-400">食欲</p>
-                                        <p className="text-slate-900 dark:text-slate-100">
-                                            {caseData.questionnaire.appetite || '-'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-500 dark:text-slate-400">大便</p>
-                                        <p className="text-slate-900 dark:text-slate-100">
-                                            {caseData.questionnaire.bowel_movement || '-'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p className="text-slate-500 dark:text-slate-400">小便</p>
-                                        <p className="text-slate-900 dark:text-slate-100">
-                                            {caseData.questionnaire.urination || '-'}
-                                        </p>
+                            <hr className="border-slate-200 dark:border-slate-700" />
+
+                            <div>
+                                <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-amber-500" />
+                                    问诊摘要
+                                </h4>
+                                <div className="space-y-2 text-sm">
+                                    {[
+                                        { label: '主诉', value: caseData.questionnaire?.chief_complaint },
+                                        { label: '现病史', value: caseData.questionnaire?.present_illness },
+                                        { label: '既往史', value: caseData.questionnaire?.past_history },
+                                    ].filter(e => e.value).map((e) => (
+                                        <div key={e.label}>
+                                            <p className="text-slate-500 dark:text-slate-400">{e.label}</p>
+                                            <p className="text-slate-900 dark:text-slate-100">{e.value}</p>
+                                        </div>
+                                    ))}
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {[
+                                            { label: '睡眠', value: caseData.questionnaire?.sleep_quality },
+                                            { label: '食欲', value: caseData.questionnaire?.appetite },
+                                            { label: '大便', value: caseData.questionnaire?.bowel_movement },
+                                            { label: '小便', value: caseData.questionnaire?.urination },
+                                        ].filter(e => e.value).map((e) => (
+                                            <div key={e.label}>
+                                                <p className="text-slate-500 dark:text-slate-400">{e.label}</p>
+                                                <p className="text-slate-900 dark:text-slate-100">{e.value}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
 
-                {/* 中栏：图片可视化 */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Eye className="w-5 h-5 text-purple-500" />
-                            可视化分析
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {assets && assets.length > 0 ? (
-                            <div className="grid grid-cols-2 gap-3">
-                                {assets.map((asset) => (
-                                    <Dialog key={asset.id}>
-                                        <DialogTrigger asChild>
-                                            <button className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 hover:ring-2 hover:ring-purple-500 transition-all">
+                    {/* 可视化分析 */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <Eye className="w-5 h-5 text-purple-500" />
+                                可视化分析
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {assets && assets.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-3">
+                                    {assets.map((asset) => (
+                                        <Dialog key={asset.id}>
+                                            <DialogTrigger asChild>
+                                                <button className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 hover:ring-2 hover:ring-purple-500 transition-all">
+                                                    <img
+                                                        src={asset.url}
+                                                        alt={getAssetTypeName(asset.type)}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                        onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.svg' }}
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                                                            <p className="text-white text-xs font-medium">
+                                                                {getAssetTypeName(asset.type)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-3xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>{getAssetTypeName(asset.type)}</DialogTitle>
+                                                </DialogHeader>
                                                 <img
                                                     src={asset.url}
                                                     alt={getAssetTypeName(asset.type)}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = '/placeholder-image.svg'
-                                                    }}
+                                                    className="w-full h-auto rounded-lg"
+                                                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-image.svg' }}
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                        <p className="text-white text-xs font-medium">
-                                                            {getAssetTypeName(asset.type)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </button>
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-3xl">
-                                            <DialogHeader>
-                                                <DialogTitle>{getAssetTypeName(asset.type)}</DialogTitle>
-                                            </DialogHeader>
-                                            <img
-                                                src={asset.url}
-                                                alt={getAssetTypeName(asset.type)}
-                                                className="w-full h-auto rounded-lg"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).src = '/placeholder-image.svg'
-                                                }}
-                                            />
-                                        </DialogContent>
-                                    </Dialog>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                暂无可视化资源
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                                            </DialogContent>
+                                        </Dialog>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 text-slate-500 dark:text-slate-400">
+                                    暂无可视化资源
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
-                {/* 右栏：模型建议与医生修订 */}
-                <Card className="lg:row-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Edit3 className="w-5 h-5 text-emerald-500" />
-                            诊断与修订
-                        </CardTitle>
-                        <CardDescription>查看 AI 建议并进行审核</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {result ? (
-                            <>
-                                {/* 证候列表 */}
-                                <div>
-                                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                        <Activity className="w-4 h-4 text-emerald-500" />
-                                        证候分析
-                                        <Badge variant="secondary" className="ml-auto">
-                                            置信度 {Math.round(result.confidence_score * 100)}%
-                                        </Badge>
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {editedSyndromes.map((syndrome, index) => (
-                                            <div key={index} className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                                {isEditing ? (
-                                                    <div className="space-y-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <Input
-                                                                value={syndrome.name}
-                                                                onChange={(e) => handleUpdateSyndrome(index, 'name', e.target.value)}
-                                                                placeholder="证候名称"
-                                                                className="h-8"
-                                                            />
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                onClick={() => handleRemoveSyndrome(index)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-slate-500 w-12">置信度</span>
-                                                            <input
-                                                                type="range"
-                                                                min="0"
-                                                                max="1"
-                                                                step="0.01"
-                                                                value={syndrome.score}
-                                                                onChange={(e) => handleUpdateSyndrome(index, 'score', parseFloat(e.target.value))}
-                                                                className="flex-1 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
-                                                            />
-                                                            <span className="text-xs text-slate-500 w-8 text-right">
-                                                                {Math.round(syndrome.score * 100)}%
-                                                            </span>
-                                                        </div>
+                {/* ── 右侧滚动区：病程对比 + 诊断与修订 ── */}
+                <div className="flex-1 min-w-0 space-y-6">
+
+                    {/* 病程对比 */}
+                    {historyData.length > 1 && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <TrendingUp className="w-5 h-5 text-cyan-500" />
+                                    病程对比
+                                </CardTitle>
+                                <CardDescription>该患者历史病例证型变化趋势</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-[260px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={historyData}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                                            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                            <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} unit="%" />
+                                            <Tooltip formatter={(val: any) => `${val}%`} />
+                                            <Legend />
+                                            {historyLabels.map((name, i) => (
+                                                <Line
+                                                    key={name}
+                                                    type="monotone"
+                                                    dataKey={name}
+                                                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                                                    strokeWidth={2}
+                                                    dot={{ r: 4 }}
+                                                    activeDot={{ r: 6 }}
+                                                />
+                                            ))}
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* 诊断与修订 */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <Edit3 className="w-5 h-5 text-emerald-500" />
+                                诊断与修订
+                            </CardTitle>
+                            <CardDescription>查看 AI 建议并进行审核</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {result ? (
+                                <>
+                                    {/* 证候分析 */}
+                                    <div>
+                                        <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                            <Activity className="w-4 h-4 text-emerald-500" />
+                                            证候分析
+                                            <Badge variant="secondary" className="ml-auto text-xs">
+                                                AI置信度 {Math.round(result.confidence_score * 100)}%
+                                            </Badge>
+                                        </h4>
+                                        {isEditing ? (
+                                            <div className="space-y-2">
+                                                {editedSyndromes.map((syndrome, index) => (
+                                                    <div key={index} className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                                        <Input
+                                                            value={syndrome.name}
+                                                            onChange={(e) => handleUpdateSyndrome(index, 'name', e.target.value)}
+                                                            placeholder="证候名称"
+                                                            className="h-8 flex-1"
+                                                        />
+                                                        <input
+                                                            type="range" min="0" max="1" step="0.01"
+                                                            value={syndrome.score}
+                                                            onChange={(e) => handleUpdateSyndrome(index, 'score', parseFloat(e.target.value))}
+                                                            className="w-20 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                                            title={`${Math.round(syndrome.score * 100)}%`}
+                                                        />
+                                                        <span className="text-xs text-slate-500 w-8 text-right shrink-0">{Math.round(syndrome.score * 100)}%</span>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50 shrink-0" onClick={() => handleRemoveSyndrome(index)}>
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
                                                     </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {syndrome.name}
-                                                            </span>
-                                                            <span className="text-sm text-emerald-600 dark:text-emerald-400">
-                                                                {Math.round(syndrome.score * 100)}%
-                                                            </span>
-                                                        </div>
-                                                        <Progress value={syndrome.score * 100} className="h-1.5" />
-                                                    </>
-                                                )}
+                                                ))}
+                                                <Button variant="outline" size="sm" className="w-full border-dashed" onClick={handleAddSyndrome}>
+                                                    <Plus className="w-4 h-4 mr-2" />添加证候
+                                                </Button>
                                             </div>
-                                        ))}
-                                        {isEditing && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full border-dashed"
-                                                onClick={handleAddSyndrome}
-                                            >
-                                                <Plus className="w-4 h-4 mr-2" />
-                                                添加证候
-                                            </Button>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {editedSyndromes.map((syndrome, index) => {
+                                                    const pct = Math.round(syndrome.score * 100)
+                                                    const intensity = pct >= 70 ? 'bg-emerald-100 border-emerald-300 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-700 dark:text-emerald-200'
+                                                        : pct >= 40 ? 'bg-teal-50 border-teal-200 text-teal-800 dark:bg-teal-900/30 dark:border-teal-700 dark:text-teal-200'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800/50 dark:border-slate-600 dark:text-slate-300'
+                                                    return (
+                                                        <div key={index} className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm font-medium ${intensity}`}>
+                                                            <span className="truncate mr-1">{syndrome.name}</span>
+                                                            <span className="shrink-0 text-xs font-semibold opacity-70">{pct}%</span>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* 推荐用药 */}
-                                <div>
-                                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                        <Pill className="w-4 h-4 text-teal-500" />
-                                        推荐用药
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {editedFormulas.map((formula, index) => (
-                                            <div
-                                                key={index}
-                                                className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50"
-                                            >
-                                                {isEditing ? (
-                                                    <div className="space-y-2">
+                                    {/* 推荐用药 */}
+                                    <div>
+                                        <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                            <Pill className="w-4 h-4 text-teal-500" />
+                                            推荐用药
+                                            <Badge variant="secondary" className="ml-auto text-xs">
+                                                AI置信度 {Math.round(result.confidence_score * 100)}%
+                                            </Badge>
+                                        </h4>
+                                        {isEditing ? (
+                                            <div className="space-y-2">
+                                                {editedFormulas.map((formula, index) => (
+                                                    <div key={index} className="space-y-1.5 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50">
                                                         <div className="flex items-center gap-2">
                                                             <Input
                                                                 value={formula.name}
                                                                 onChange={(e) => handleUpdateFormula(index, 'name', e.target.value)}
                                                                 placeholder="方剂名称"
-                                                                className="h-8"
+                                                                className="h-8 flex-1"
                                                             />
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                                                                onClick={() => handleRemoveFormula(index)}
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50 shrink-0" onClick={() => handleRemoveFormula(index)}>
+                                                                <Trash2 className="w-3.5 h-3.5" />
                                                             </Button>
                                                         </div>
                                                         <Input
                                                             value={formula.indication || ''}
                                                             onChange={(e) => handleUpdateFormula(index, 'indication', e.target.value)}
-                                                            placeholder="主治/适应症"
-                                                            className="h-8 text-xs"
+                                                            placeholder="主治/适应症（可选）"
+                                                            className="h-7 text-xs"
                                                         />
                                                     </div>
-                                                ) : (
-                                                    <>
-                                                        <div className="flex items-center justify-between">
-                                                            <span className="font-medium text-slate-900 dark:text-slate-100">
-                                                                {formula.name}
-                                                            </span>
-                                                            <Badge variant="default" className="text-xs">
-                                                                {Math.round(formula.score * 100)}%
-                                                            </Badge>
-                                                        </div>
-                                                        {formula.indication && (
-                                                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                                                {formula.indication}
-                                                            </p>
-                                                        )}
-                                                    </>
-                                                )}
+                                                ))}
+                                                <Button variant="outline" size="sm" className="w-full border-dashed" onClick={handleAddFormula}>
+                                                    <Plus className="w-4 h-4 mr-2" />添加方剂
+                                                </Button>
                                             </div>
-                                        ))}
-                                        {isEditing && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full border-dashed"
-                                                onClick={handleAddFormula}
-                                            >
-                                                <Plus className="w-4 h-4 mr-2" />
-                                                添加方剂
-                                            </Button>
+                                        ) : (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {editedFormulas.map((formula, index) => {
+                                                    const pct = Math.round(formula.score * 100)
+                                                    const intensity = pct >= 70 ? 'bg-teal-100 border-teal-300 text-teal-800 dark:bg-teal-900/40 dark:border-teal-700 dark:text-teal-200'
+                                                        : pct >= 40 ? 'bg-cyan-50 border-cyan-200 text-cyan-800 dark:bg-cyan-900/30 dark:border-cyan-700 dark:text-cyan-200'
+                                                            : 'bg-slate-50 border-slate-200 text-slate-600 dark:bg-slate-800/50 dark:border-slate-600 dark:text-slate-300'
+                                                    return (
+                                                        <div key={index} className={`px-3 py-2 rounded-lg border text-sm ${intensity}`}>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="font-medium truncate mr-1">{formula.name}</span>
+                                                                <span className="shrink-0 text-xs font-semibold opacity-70">{pct}%</span>
+                                                            </div>
+                                                            {formula.indication && (
+                                                                <p className="text-xs opacity-60 mt-0.5 truncate">{formula.indication}</p>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* AI 综合分析 */}
-                                {result.llm_explanation && (
-                                    <div>
-                                        <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-                                            <Activity className="w-4 h-4 text-purple-500" />
-                                            AI 综合分析
-                                        </h4>
-                                        <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
-                                            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
-                                                {result.llm_explanation}
-                                            </p>
+                                    {/* AI 综合分析 */}
+                                    {result.llm_explanation && (
+                                        <div>
+                                            <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                                <Activity className="w-4 h-4 text-purple-500" />
+                                                AI 综合分析
+                                            </h4>
+                                            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                                                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                                    {result.llm_explanation}
+                                                </p>
+                                            </div>
                                         </div>
+                                    )}
+
+                                    {/* 审核备注 */}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="review-note">审核备注</Label>
+                                        <Textarea
+                                            id="review-note"
+                                            placeholder="可选：填写审核意见或修改建议..."
+                                            value={reviewNote}
+                                            onChange={(e) => setReviewNote(e.target.value)}
+                                            rows={3}
+                                        />
                                     </div>
-                                )}
 
-                                {/* 审核备注 */}
-                                <div className="space-y-2">
-                                    <Label htmlFor="review-note">审核备注</Label>
-                                    <Textarea
-                                        id="review-note"
-                                        placeholder="可选：填写审核意见或修改建议..."
-                                        value={reviewNote}
-                                        onChange={(e) => setReviewNote(e.target.value)}
-                                        rows={3}
-                                    />
-                                </div>
-
-                                {/* 审核按钮 */}
-                                <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                    {isEditing ? (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <Button
-                                                className="bg-emerald-600 hover:bg-emerald-700"
-                                                onClick={() => handleSubmitReview('revise')}
-                                                disabled={isSubmitting}
-                                            >
-                                                {isSubmitting ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                                ) : (
-                                                    <Save className="w-4 h-4 mr-2" />
-                                                )}
-                                                确认修订
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                onClick={toggleEditMode}
-                                                disabled={isSubmitting}
-                                            >
-                                                <Undo className="w-4 h-4 mr-2" />
-                                                取消编辑
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {/* 如果已通过，只显示修订按钮 */}
-                                            {caseData.status === 'approved' ? (
+                                    {/* 审核按钮 */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                        {isEditing ? (
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <Button
-                                                    variant="outline"
-                                                    className="w-full"
-                                                    onClick={toggleEditMode}
+                                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                                    onClick={() => handleSubmitReview('revise')}
                                                     disabled={isSubmitting}
                                                 >
-                                                    <Edit3 className="w-4 h-4 mr-2" />
-                                                    修订结果
+                                                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                                    确认修订
                                                 </Button>
-                                            ) : (
-                                                <>
-                                                    <Button
-                                                        className="w-full"
-                                                        onClick={() => handleSubmitReview('approve')}
-                                                        disabled={isSubmitting}
-                                                    >
-                                                        {isSubmitting ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                                                        ) : (
-                                                            <Check className="w-4 h-4 mr-2" />
-                                                        )}
-                                                        通过审核
+                                                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isSubmitting}>
+                                                    <Undo className="w-4 h-4 mr-2" />
+                                                    取消编辑
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {caseData.status === 'approved' ? (
+                                                    <Button variant="outline" className="w-full" onClick={() => setIsEditing(true)} disabled={isSubmitting}>
+                                                        <Edit3 className="w-4 h-4 mr-2" />
+                                                        修订结果
                                                     </Button>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <Button
-                                                            variant="outline"
-                                                            onClick={toggleEditMode}
-                                                            disabled={isSubmitting}
-                                                        >
-                                                            <Edit3 className="w-4 h-4 mr-1" />
-                                                            修订结果
+                                                ) : (
+                                                    <>
+                                                        <Button className="w-full" onClick={() => handleSubmitReview('approve')} disabled={isSubmitting}>
+                                                            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+                                                            通过审核
                                                         </Button>
-                                                        <Button
-                                                            variant="destructive"
-                                                            onClick={() => handleSubmitReview('reject')}
-                                                            disabled={isSubmitting}
-                                                        >
-                                                            <X className="w-4 h-4 mr-1" />
-                                                            驳回
-                                                        </Button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </>
-                                    )}
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <Button variant="outline" onClick={() => setIsEditing(true)} disabled={isSubmitting}>
+                                                                <Edit3 className="w-4 h-4 mr-1" />
+                                                                修订结果
+                                                            </Button>
+                                                            <Button variant="destructive" onClick={() => handleSubmitReview('reject')} disabled={isSubmitting}>
+                                                                <X className="w-4 h-4 mr-1" />
+                                                                驳回
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                                    暂无诊断结果
                                 </div>
-                            </>
-                        ) : (
-                            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                暂无诊断结果
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            </div >
-        </div >
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
     )
 }

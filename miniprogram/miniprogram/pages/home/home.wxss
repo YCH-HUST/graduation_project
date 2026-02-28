@@ -208,6 +208,45 @@
   color: #cbd5e1;
 }
 
+/* 健康管理快捷入口 */
+.medication-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border: 2rpx solid #a7f3d0;
+}
+
+.entry-left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.entry-icon {
+  font-size: 48rpx;
+}
+
+.entry-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.entry-desc {
+  display: block;
+  font-size: 22rpx;
+  color: #047857;
+  margin-top: 4rpx;
+}
+
+.medication-entry .arrow {
+  color: #10b981;
+  font-size: 44rpx;
+}
+
 /* 全屏加载 */
 .full-loading {
   height: 80vh;

@@ -1,0 +1,56 @@
+<view class="container">
+  <view wx:if="{{isLoading}}" class="loading-state">
+    <text style="font-size:72rpx">⏳</text>
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <view wx:elif="{{!plan}}" class="empty-state">
+    <text style="font-size:96rpx;opacity:0.4">💊</text>
+    <text class="empty-text">暂无正在进行的用药计划</text>
+    <text class="empty-sub">审核通过后的病例将自动生成用药计划</text>
+  </view>
+
+  <view wx:else class="plan-content">
+    <!-- 今日进度 -->
+    <view class="card progress-card">
+      <view class="card-header">
+        <text class="title">📋 今日用药记录</text>
+        <text class="date">{{today}}</text>
+      </view>
+      
+      <view class="slot-list">
+        <view wx:for="{{slots}}" wx:key="key" class="slot-item {{item.taken ? 'taken' : ''}}">
+          <view class="slot-info">
+            <text class="slot-icon">{{item.icon}}</text>
+            <view>
+              <text class="slot-name">{{item.name}}</text>
+              <text class="slot-status">{{item.taken ? '✅ 已服药' : '⏳ 待打卡'}}</text>
+            </view>
+          </view>
+          <button 
+            class="check-btn {{item.taken ? 'btn-done' : 'btn-active'}}" 
+            bindtap="onToggleCheck" 
+            data-slot="{{item.key}}"
+            data-taken="{{item.taken}}"
+          >
+            {{item.taken ? '已完成' : '去打卡'}}
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <!-- 反馈留言 -->
+    <view class="card feedback-card">
+      <view class="card-header">
+        <text class="title">📝 今日反馈</text>
+      </view>
+      <textarea 
+        class="feedback-input" 
+        placeholder="如果有任何不适或症状变化，请在此记录..." 
+        value="{{feedback}}" 
+        bindinput="onFeedbackInput"
+      />
+      <button class="submit-feedback" bindtap="onSubmitFeedback">保存反馈</button>
+    </view>
+  </view>
+</view>

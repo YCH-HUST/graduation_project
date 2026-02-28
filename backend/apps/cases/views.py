@@ -18,6 +18,7 @@ from .serializers import (
 from apps.accounts.permissions import IsPatient, IsDoctor, IsCaseOwnerOrDoctorOrAdmin
 from apps.audit.utils import log_action
 from apps.notifications.utils import notify_doctors_new_case, notify_patient_case_reviewed
+from apps.followups.models import MedicationPlan
 
 
 class CaseViewSet(viewsets.GenericViewSet):
@@ -220,4 +221,44 @@ class CaseViewSet(viewsets.GenericViewSet):
         # 通知患者审核结果
         notify_patient_case_reviewed(case, decision, request.user)
         
+        # 审核通过/修订时自动创建用药计划
+        if decision in ['approved', 'revise']:
+            MedicationPlan.objects.get_or_create(
+                case=case,
+                defaults={'patient': case.patient, 'is_active': True}
+            )
+        
         return Response({'ok': True})
+
+    @action(detail=False, methods=['get'], url_path='patient-history/(?P<patient_id>[^/.]+)')
+    def patient_history(self, request, patient_id=None):
+        """
+        GET /api/cases/patient-history/<patient_id>/
+        获取指定患者的历史已审批病例数据（用于病程对比）
+        """
+        cases = Case.objects.filter(
+            patient_id=patient_id,
+            status='approved'
+        ).order_by('created_at')
+
+        history = []
+        for c in cases:
+            run = c.pipeline_runs.filter(status='success').order_by('-created_at').first()
+            if not run:
+                continue
+
+            inference = run.inference_result_json or {}
+            syndromes = []
+            for s in inference.get('syndromes', []):
+                syndromes.append({
+                    'name': s.get('name', ''),
+                    'score': round(s.get('confidence', 0), 4),
+                })
+
+            history.append({
+                'case_id': str(c.id),
+                'date': c.created_at.strftime('%Y-%m-%d'),
+                'syndromes': syndromes,
+            })
+
+        return Response(history)
