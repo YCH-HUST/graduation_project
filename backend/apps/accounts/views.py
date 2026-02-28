@@ -135,3 +135,34 @@ class RecentPatientsView(APIView):
             'patients': patients,
             'total': len(patients)
         })
+
+
+class ChangePasswordView(APIView):
+    """
+    修改密码接口
+    POST /api/change-password/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        old_password = request.data.get('old_password', '')
+        new_password = request.data.get('new_password', '')
+        confirm_password = request.data.get('confirm_password', '')
+
+        if not user.check_password(old_password):
+            return Response({'detail': '原密码不正确'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'detail': '新密码长度不能少于 6 位'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({'detail': '两次输入的密码不一致'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        log_action(user=user, action='change_password', details={})
+
+        return Response({'detail': '密码修改成功'})
+

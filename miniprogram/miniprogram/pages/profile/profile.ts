@@ -1,5 +1,5 @@
 // pages/profile/profile.ts
-import { getProfile, updateProfile } from '../../api/profile'
+import { getProfile, updateProfile, changePassword } from '../../api/profile'
 import { setUser, clearAuth, isLoggedIn } from '../../utils/storage'
 
 Page({
@@ -12,8 +12,14 @@ Page({
             gender: '',
             age: '' as string | number,
         },
+        pwForm: {
+            old_password: '',
+            new_password: '',
+            confirm_password: '',
+        },
         isLoading: true,
         isSaving: false,
+        isChangingPw: false,
         username: '',
     },
 
@@ -79,6 +85,29 @@ Page({
             wx.showToast({ title: err.message || '保存失败', icon: 'none' })
         } finally {
             this.setData({ isSaving: false })
+        }
+    },
+
+    onPwInput(e: WechatMiniprogram.Input) {
+        const field = e.currentTarget.dataset.field
+        this.setData({ [`pwForm.${field}`]: e.detail.value })
+    },
+
+    async onChangePassword() {
+        const { old_password, new_password, confirm_password } = this.data.pwForm
+        if (!old_password || !new_password || !confirm_password) {
+            wx.showToast({ title: '请填写所有字段', icon: 'none' })
+            return
+        }
+        this.setData({ isChangingPw: true })
+        try {
+            const res = await changePassword({ old_password, new_password, confirm_password })
+            wx.showToast({ title: res.detail || '修改成功', icon: 'success' })
+            this.setData({ pwForm: { old_password: '', new_password: '', confirm_password: '' } })
+        } catch (err: any) {
+            wx.showToast({ title: err.message || '修改失败', icon: 'none' })
+        } finally {
+            this.setData({ isChangingPw: false })
         }
     },
 

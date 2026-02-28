@@ -33,3 +33,10 @@ export function updateProfile(data: ProfileUpdateRequest): Promise<Profile> {
         data,
     })
 }
+
+export function changePassword(data: { old_password: string; new_password: string; confirm_password: string }): Promise<{ detail: string }> {
+    return request<{ detail: string }>('/api/change-password/', {
+        method: 'POST',
+        data,
+    })
+}

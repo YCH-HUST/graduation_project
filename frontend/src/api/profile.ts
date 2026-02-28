@@ -66,6 +66,11 @@ export async function getRecentPatients(): Promise<RecentPatientsResponse> {
     return response.data
 }
 
+export async function changePassword(data: { old_password: string; new_password: string; confirm_password: string }): Promise<{ detail: string }> {
+    const response = await apiClient.post<{ detail: string }>('/api/change-password/', data)
+    return response.data
+}
+
 // ============ Mock 实现 ============
 
 let mockDoctorProfile: User = {

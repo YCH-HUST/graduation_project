@@ -74,6 +74,28 @@
     </view>
   </view>
 
+  <!-- 修改密码 -->
+  <view class="card">
+    <text class="card-title" style="margin-bottom:28rpx">🔒 修改密码</text>
+
+    <view class="form-group">
+      <text class="form-label">原密码</text>
+      <input class="form-input" password placeholder="请输入原密码" value="{{pwForm.old_password}}" bindinput="onPwInput" data-field="old_password" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">新密码</text>
+      <input class="form-input" password placeholder="至少 6 位" value="{{pwForm.new_password}}" bindinput="onPwInput" data-field="new_password" />
+    </view>
+    <view class="form-group">
+      <text class="form-label">确认新密码</text>
+      <input class="form-input" password placeholder="再次输入新密码" value="{{pwForm.confirm_password}}" bindinput="onPwInput" data-field="confirm_password" />
+    </view>
+
+    <button class="btn-primary {{isChangingPw ? 'btn-disabled' : ''}}" disabled="{{isChangingPw}}" bindtap="onChangePassword">
+      {{isChangingPw ? '提交中...' : '确认修改密码'}}
+    </button>
+  </view>
+
 </view>
 
 <view class="loading-wrap full-loading" wx:if="{{isLoading}}">

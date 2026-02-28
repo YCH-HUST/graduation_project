@@ -2,7 +2,7 @@
 URL configuration for accounts app.
 """
 from django.urls import path
-from .views import LoginView, RegisterView, ProfileView, RecentPatientsView
+from .views import LoginView, RegisterView, ProfileView, RecentPatientsView, ChangePasswordView
 from .patient_views import PatientListCreateView, PatientDetailView
 from .statistics_views import DoctorStatisticsView
 from .doctor_views import DoctorListView
@@ -33,4 +33,7 @@ profile_urlpatterns = [
     # 医生列表 API
     path('doctors/', DoctorListView.as_view(), name='doctor_list'),
     path('doctors', DoctorListView.as_view(), name='doctor_list_no_slash'),
+    # 修改密码 API
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('change-password', ChangePasswordView.as_view(), name='change_password_no_slash'),
 ]

@@ -48,6 +48,7 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '病例管理', href: '/admin/cases', icon: <FileText className="w-5 h-5" /> },
         { label: '健康检查', href: '/admin/health', icon: <Activity className="w-5 h-5" /> },
         { label: 'AI 配置', href: '/admin/ai-config', icon: <Settings2 className="w-5 h-5" /> },
+        { label: '个人设置', href: '/admin/profile', icon: <Settings className="w-5 h-5" /> },
     ],
 }
 
