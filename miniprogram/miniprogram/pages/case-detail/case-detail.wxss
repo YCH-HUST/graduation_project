@@ -93,3 +93,41 @@
 .q-item { display: flex; padding: 16rpx 0; border-bottom: 1rpx solid #f1f5f9; }
 .q-label { width: 140rpx; font-size: 26rpx; color: #64748b; font-weight: 600; flex-shrink: 0; }
 .q-value { flex: 1; font-size: 26rpx; color: #334155; }
+
+/* ===== 医生确认结果样式 ===== */
+.doctor-result-header {
+  display: flex; align-items: center; gap: 20rpx;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border-radius: 24rpx; padding: 28rpx 32rpx;
+  margin-bottom: 20rpx;
+  border: 2rpx solid #6ee7b7;
+}
+.doctor-result-icon { font-size: 52rpx; flex-shrink: 0; }
+.doctor-result-info { flex: 1; }
+.doctor-result-title { display: block; font-size: 30rpx; font-weight: 700; color: #065f46; }
+.doctor-result-sub { display: block; font-size: 22rpx; color: #047857; margin-top: 4rpx; }
+
+/* 医生确认的标签（更深绿/青色） */
+.tag-confirmed.tag-syndrome { background: #059669; color: #ffffff; }
+.tag-confirmed.tag-formula { background: #0891b2; color: #ffffff; }
+
+/* 医嘱框 */
+.note-box {
+  background: #fefce8; border: 2rpx solid #fde68a;
+  border-radius: 16rpx; padding: 24rpx 28rpx;
+  margin-top: 8rpx;
+}
+.note-text { font-size: 28rpx; color: #78350f; line-height: 1.8; white-space: pre-wrap; }
+
+/* AI 参考分隔线 */
+.section-divider {
+  display: flex; align-items: center; margin: 16rpx 0;
+}
+.divider-text {
+  font-size: 22rpx; color: #94a3b8; font-weight: 500;
+  background: #f1f5f9; border-radius: 20rpx;
+  padding: 8rpx 24rpx; margin: 0 auto;
+}
+
+/* AI 参考卡片（视觉弱化） */
+.card-reference { opacity: 0.75; }

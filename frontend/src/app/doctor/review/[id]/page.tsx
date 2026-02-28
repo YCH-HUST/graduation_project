@@ -499,6 +499,29 @@ export default function ReviewPage() {
                                         )}
                                     </div>
 
+                                    {/* 证据要点 */}
+                                    {result.evidence_points && result.evidence_points.length > 0 && (
+                                        <div>
+                                            <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
+                                                <FileText className="w-4 h-4 text-amber-500" />
+                                                证据要点
+                                                <span className="ml-auto text-xs font-normal text-slate-500">AI 提取的舌诊/症状依据</span>
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {result.evidence_points.map((point: string, i: number) => (
+                                                    <div key={i} className="flex gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+                                                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-400 text-white text-xs font-bold flex items-center justify-center">
+                                                            {i + 1}
+                                                        </span>
+                                                        <span className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+                                                            {point}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* AI 综合分析 */}
                                     {result.llm_explanation && (
                                         <div>

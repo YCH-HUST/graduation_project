@@ -1,9 +1,9 @@
 "use client"
 
 /**
- * 管理员端 - 系统仪表盘
+ * 管理员端 - 系统仪表盘 (带自动刷新)
  */
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { getStatistics } from '@/api/admin'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +21,18 @@ import {
     CheckCircle2,
     XCircle,
     AlertCircle,
+    RefreshCw,
+    Timer,
 } from 'lucide-react'
 import type { AdminStatistics } from '@/types'
 
 export default function AdminDashboardPage() {
     const [stats, setStats] = useState<AdminStatistics | null>(null)
     const [isLoading, setIsLoading] = useState(true)
+    const [autoRefresh, setAutoRefresh] = useState(false)
+    const [countdown, setCountdown] = useState(30)
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     const fetchStats = useCallback(async () => {
         try {
@@ -47,6 +53,27 @@ export default function AdminDashboardPage() {
         fetchStats()
     }, [fetchStats])
 
+    // 自动刷新逻辑
+    useEffect(() => {
+        if (autoRefresh) {
+            setCountdown(30)
+            timerRef.current = setInterval(() => {
+                fetchStats()
+                setCountdown(30)
+            }, 30000)
+            countdownRef.current = setInterval(() => {
+                setCountdown(c => Math.max(0, c - 1))
+            }, 1000)
+        } else {
+            if (timerRef.current) clearInterval(timerRef.current)
+            if (countdownRef.current) clearInterval(countdownRef.current)
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+            if (countdownRef.current) clearInterval(countdownRef.current)
+        }
+    }, [autoRefresh, fetchStats])
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -66,13 +93,41 @@ export default function AdminDashboardPage() {
     return (
         <div className="max-w-6xl mx-auto space-y-6">
             {/* 页面标题 */}
-            <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
-                    系统仪表盘
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 mt-1">
-                    系统整体运行状况概览
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent dark:from-slate-100 dark:to-slate-300">
+                        系统仪表盘
+                    </h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1">
+                        系统整体运行状况概览
+                    </p>
+                </div>
+                {/* 自动刷新开关 */}
+                <div className="flex items-center gap-3">
+                    {autoRefresh && (
+                        <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                            <Timer className="w-4 h-4" />{countdown}s
+                        </span>
+                    )}
+                    <button
+                        onClick={() => setAutoRefresh(r => !r)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${autoRefresh
+                                ? 'bg-purple-500 text-white shadow-md shadow-purple-500/30'
+                                : 'border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                    >
+                        <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+                        自动刷新
+                    </button>
+                    <button
+                        onClick={() => fetchStats()}
+                        disabled={isLoading}
+                        className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all disabled:opacity-50"
+                        title="立即刷新"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
 
             {/* 用户统计 */}

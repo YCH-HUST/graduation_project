@@ -33,21 +33,41 @@ Page({
             const data = await getCaseDetail(caseId)
             const caseInfo = data.case
             const run = data.latest_run
+            const review = (data as any).latest_review || null
             const assets = (data.assets || []).map((a: any) => ({
                 ...a,
                 typeName: ASSET_TYPE_NAMES[a.type] || a.type,
                 fullUrl: a.url.startsWith('http') ? a.url : `http://localhost:8000${a.url}`,
             }))
 
-            // 格式化 syndromes 分数
+            // ML 原始结果（降级为参考）
             const rawResult = run?.diagnosis_result
-            let result: any = null
+            let mlResult: any = null
             if (rawResult) {
-                result = {
+                mlResult = {
                     ...rawResult,
                     confidencePercent: Math.round((rawResult.confidence_score || 0) * 100),
                     syndromes: rawResult.syndromes.map((s: any) => ({ ...s, scorePercent: Math.round(s.score * 100) })),
                     formulas: rawResult.formulas.map((f: any) => ({ ...f, scorePercent: Math.round(f.score * 100) })),
+                }
+            }
+
+            // 医生确认结果（主要显示）
+            let doctorResult: any = null
+            if (review && (review.decision === 'approved' || review.decision === 'revise')) {
+                const editedSyndromes: any[] = Array.isArray(review.edited_syndrome_json) && review.edited_syndrome_json.length > 0
+                    ? review.edited_syndrome_json
+                    : (mlResult?.syndromes || [])
+                const editedHerbs: any[] = Array.isArray(review.edited_prescription_json) && review.edited_prescription_json.length > 0
+                    ? review.edited_prescription_json
+                    : (mlResult?.formulas || [])
+                doctorResult = {
+                    syndromes: editedSyndromes,
+                    herbs: editedHerbs,
+                    note: review.note || '',
+                    doctorName: review.doctor_name || '主诊医生',
+                    decision: review.decision,
+                    reviewedAt: review.created_at || '',
                 }
             }
 
@@ -67,7 +87,8 @@ Page({
                 caseData: { ...caseInfo, qEntries, timeText: this.formatTime(caseInfo.created_at) },
                 run,
                 assets,
-                result,
+                result: mlResult,      // 保留原字段 (AI 参考)
+                doctorResult,          // 新字段 (医生确认结果)
                 statusText: STATUS_TEXT[caseInfo.status as CaseStatus] || caseInfo.status,
                 statusColor: STATUS_COLOR[caseInfo.status as CaseStatus] || '#94a3b8',
                 statusBgClass: `badge-${caseInfo.status}`,

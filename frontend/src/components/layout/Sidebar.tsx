@@ -2,12 +2,14 @@
 
 /**
  * 侧边导航栏组件 - 支持移动端响应式
+ * 医生端"消息通知"菜单项实时显示未读数量角标
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth'
 import { cn } from '@/lib/utils'
+import { getUnreadCount } from '@/api/notifications'
 import {
     Home,
     Plus,
@@ -23,6 +25,7 @@ import {
     Menu,
     X,
     Settings2,
+    ScrollText,
 } from 'lucide-react'
 import type { UserRole } from '@/types'
 
@@ -30,6 +33,7 @@ interface NavItem {
     label: string
     href: string
     icon: React.ReactNode
+    badgeKey?: string  // 若设置，则从 badge 状态读取角标数量
 }
 
 const navItems: Record<UserRole, NavItem[]> = {
@@ -39,7 +43,7 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '病例管理', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
         { label: '患者管理', href: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
         { label: '数据统计', href: '/doctor/statistics', icon: <BarChart3 className="w-5 h-5" /> },
-        { label: '消息通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" /> },
+        { label: '消息通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" />, badgeKey: 'unread' },
         { label: '个人资料', href: '/doctor/profile', icon: <Settings className="w-5 h-5" /> },
     ],
     admin: [
@@ -48,6 +52,7 @@ const navItems: Record<UserRole, NavItem[]> = {
         { label: '病例管理', href: '/admin/cases', icon: <FileText className="w-5 h-5" /> },
         { label: '健康检查', href: '/admin/health', icon: <Activity className="w-5 h-5" /> },
         { label: 'AI 配置', href: '/admin/ai-config', icon: <Settings2 className="w-5 h-5" /> },
+        { label: '系统日志', href: '/admin/logs', icon: <ScrollText className="w-5 h-5" /> },
         { label: '个人设置', href: '/admin/profile', icon: <Settings className="w-5 h-5" /> },
     ],
 }
@@ -68,6 +73,8 @@ export function Sidebar() {
     const pathname = usePathname()
     const { user, role, logout } = useAuthStore()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
+    const [unreadCount, setUnreadCount] = useState(0)
+    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     // 路由变化时关闭移动端菜单
     useEffect(() => {
@@ -86,10 +93,33 @@ export function Sidebar() {
         }
     }, [isMobileOpen])
 
+    // 医生端：轮询未读通知数量
+    useEffect(() => {
+        if (role !== 'doctor') return
+
+        const fetchUnread = async () => {
+            try {
+                const count = await getUnreadCount()
+                setUnreadCount(count)
+            } catch (_) { }
+        }
+
+        fetchUnread()
+        timerRef.current = setInterval(fetchUnread, 30000) // 每 30 秒刷新一次
+
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
+        }
+    }, [role])
+
     if (!role) return null
 
     const items = navItems[role] || []
     const gradientColor = roleColors[role]
+
+    const badges: Record<string, number> = {
+        unread: unreadCount,
+    }
 
     const SidebarContent = () => (
         <>
@@ -125,6 +155,7 @@ export function Sidebar() {
             <nav className="flex-1 p-3 md:p-4 space-y-1.5">
                 {items.map((item) => {
                     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    const badgeNum = item.badgeKey ? (badges[item.badgeKey] || 0) : 0
                     return (
                         <Link
                             key={item.href}
@@ -136,8 +167,20 @@ export function Sidebar() {
                                     : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
                             )}
                         >
-                            {item.icon}
+                            <span className="relative">
+                                {item.icon}
+                                {badgeNum > 0 && !isActive && (
+                                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                                        {badgeNum > 99 ? '99+' : badgeNum}
+                                    </span>
+                                )}
+                            </span>
                             {item.label}
+                            {badgeNum > 0 && isActive && (
+                                <span className="ml-auto bg-white/30 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                                    {badgeNum}
+                                </span>
+                            )}
                         </Link>
                     )
                 })}

@@ -1,21 +1,27 @@
 /**
  * HTTP 请求封装
- * 基于 wx.request，自动携带 token，统一处理错误
+ * 基于 wx.request，自动携带 token，统一处理错误，网络失败自动重试
  */
 
-const BASE_URL = 'http://localhost:8000'
+// 环境配置：通过 app 的 globalData 获取，开发环境回退 localhost
+function getBaseUrl(): string {
+    try {
+        const app = getApp<{ globalData: { baseUrl?: string } }>()
+        if (app?.globalData?.baseUrl) return app.globalData.baseUrl
+    } catch (_) { }
+    return 'http://localhost:8000'
+}
+
+const MAX_RETRY = 2  // 网络失败最多重试次数
 
 interface RequestOptions {
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+    method?: WechatMiniprogram.RequestOption['method']
     data?: any
     header?: Record<string, string>
     /** 是否需要 token，默认 true */
     auth?: boolean
-}
-
-interface ApiResponse<T = any> {
-    data: T
-    statusCode: number
+    /** 内部重试计数，勿手动传入 */
+    _retryCount?: number
 }
 
 function getToken(): string {
@@ -23,13 +29,13 @@ function getToken(): string {
 }
 
 /**
- * 通用请求
+ * 通用请求（含网络失败自动重试）
  */
 export function request<T = any>(
     url: string,
     options: RequestOptions = {}
 ): Promise<T> {
-    const { method = 'GET', data, header = {}, auth = true } = options
+    const { method = 'GET', data, header = {}, auth = true, _retryCount = 0 } = options
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -42,6 +48,8 @@ export function request<T = any>(
             headers['Authorization'] = `Bearer ${token}`
         }
     }
+
+    const BASE_URL = getBaseUrl()
 
     return new Promise((resolve, reject) => {
         wx.request({
@@ -68,7 +76,12 @@ export function request<T = any>(
                 }
             },
             fail(err) {
-                reject(new Error(err.errMsg || '网络请求失败'))
+                // 网络错误时自动重试
+                if (_retryCount < MAX_RETRY) {
+                    resolve(request<T>(url, { ...options, _retryCount: _retryCount + 1 }))
+                } else {
+                    reject(new Error(err.errMsg || '网络请求失败'))
+                }
             },
         })
     })
@@ -83,6 +96,7 @@ export function uploadFile<T = any>(
     formData?: Record<string, string>
 ): Promise<T> {
     const token = getToken()
+    const BASE_URL = getBaseUrl()
 
     return new Promise((resolve, reject) => {
         wx.uploadFile({
@@ -131,6 +145,7 @@ export function uploadForDetection<T = any>(
     filePath: string
 ): Promise<T> {
     const token = getToken()
+    const BASE_URL = getBaseUrl()
 
     return new Promise((resolve, reject) => {
         wx.uploadFile({

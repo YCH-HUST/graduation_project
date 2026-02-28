@@ -7,7 +7,8 @@ from .views import (
     HealthCheckView,
     UserViewSet,
     CaseViewSet,
-    StatisticsView
+    StatisticsView,
+    AuditLogView,
 )
 from .ai_config_views import (
     AIConfigView,
@@ -29,6 +30,7 @@ urlpatterns = [
     # ML 模型管理
     path('admin/ml-models/', MLModelListView.as_view(), name='ml_model_list'),
     path('admin/ml-models/<str:model_type>/', MLModelUploadView.as_view(), name='ml_model_upload'),
+    # 审计日志
+    path('admin/audit-logs/', AuditLogView.as_view(), name='audit_logs'),
     path('', include(router.urls)),
 ]
-

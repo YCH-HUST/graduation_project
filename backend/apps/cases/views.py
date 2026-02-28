@@ -95,10 +95,17 @@ class CaseViewSet(viewsets.GenericViewSet):
             context={'request': request}
         )
         
+        # 最新审核记录（含医生修订数据）
+        latest_review = case.reviews.order_by('-created_at').first()
+        latest_review_data = None
+        if latest_review:
+            latest_review_data = ReviewSerializer(latest_review).data
+
         return Response({
             'case': case_serializer.data,
             'latest_run': latest_run_data,
-            'assets': assets_serializer.data
+            'assets': assets_serializer.data,
+            'latest_review': latest_review_data,
         })
     
     def list(self, request):

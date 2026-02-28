@@ -36,6 +36,9 @@ import {
     Search,
     ChevronLeft,
     ChevronRight,
+    CheckSquare,
+    ToggleLeft,
+    ToggleRight,
 } from 'lucide-react'
 import type { AdminUser, UserRole } from '@/types'
 
@@ -79,6 +82,10 @@ export default function AdminUsersPage() {
     // 删除确认
     const [deleteUserId, setDeleteUserId] = useState<number | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // 批量操作
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+    const [isBatchUpdating, setIsBatchUpdating] = useState(false)
 
     const fetchUsers = useCallback(async () => {
         try {
@@ -150,6 +157,40 @@ export default function AdminUsersPage() {
             toast.error('删除失败', { description: err.response?.data?.detail || err.message })
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    const handleBatchToggle = async (activate: boolean) => {
+        if (selectedIds.size === 0) return
+        try {
+            setIsBatchUpdating(true)
+            await Promise.all(
+                Array.from(selectedIds).map(id => updateUser(id, { is_active: activate }))
+            )
+            toast.success(`已${activate ? '启用' : '禁用'} ${selectedIds.size} 个用户`)
+            setSelectedIds(new Set())
+            fetchUsers()
+        } catch (err: any) {
+            toast.error('批量操作失败', { description: err.message })
+        } finally {
+            setIsBatchUpdating(false)
+        }
+    }
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === users.length) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(users.map(u => u.id)))
         }
     }
 
@@ -278,11 +319,41 @@ export default function AdminUsersPage() {
             {/* 用户列表 */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-purple-500" />
-                        用户列表
-                    </CardTitle>
-                    <CardDescription>共 {total} 个用户</CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Users className="w-5 h-5 text-purple-500" />
+                                用户列表
+                            </CardTitle>
+                            <CardDescription>共 {total} 个用户</CardDescription>
+                        </div>
+                        {/* 批量操作工具栏 */}
+                        {selectedIds.size > 0 && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-slate-500">已选 {selectedIds.size} 项</span>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-green-600 border-green-300 hover:bg-green-50"
+                                    onClick={() => handleBatchToggle(true)}
+                                    disabled={isBatchUpdating}
+                                >
+                                    {isBatchUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ToggleRight className="w-4 h-4" />}
+                                    批量启用
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-600 border-red-300 hover:bg-red-50"
+                                    onClick={() => handleBatchToggle(false)}
+                                    disabled={isBatchUpdating}
+                                >
+                                    {isBatchUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ToggleLeft className="w-4 h-4" />}
+                                    批量禁用
+                                </Button>
+                            </div>
+                        )}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
@@ -297,6 +368,14 @@ export default function AdminUsersPage() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b">
+                                            <th className="py-3 px-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.size === users.length && users.length > 0}
+                                                    onChange={toggleSelectAll}
+                                                    className="w-4 h-4 accent-purple-500"
+                                                />
+                                            </th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">ID</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">用户名</th>
                                             <th className="text-left py-3 px-4 text-sm font-medium text-slate-500">姓名</th>
@@ -308,7 +387,15 @@ export default function AdminUsersPage() {
                                     </thead>
                                     <tbody>
                                         {users.map((user) => (
-                                            <tr key={user.id} className="border-b hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                            <tr key={user.id} className={`border-b hover:bg-slate-50 dark:hover:bg-slate-800/50 ${selectedIds.has(user.id) ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>
+                                                <td className="py-3 px-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.has(user.id)}
+                                                        onChange={() => toggleSelect(user.id)}
+                                                        className="w-4 h-4 accent-purple-500"
+                                                    />
+                                                </td>
                                                 <td className="py-3 px-4">{user.id}</td>
                                                 <td className="py-3 px-4 font-medium">{user.username}</td>
                                                 <td className="py-3 px-4">{user.full_name || '-'}</td>

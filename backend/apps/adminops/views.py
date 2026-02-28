@@ -497,3 +497,59 @@ class StatisticsView(APIView):
             'trend': trend,
         })
 
+
+class AuditLogView(APIView):
+    """
+    审计日志接口
+    GET /api/admin/audit-logs/
+    支持筛选：action, username, start_date, end_date
+    """
+    permission_classes = [IsAdmin]
+
+    def get(self, request):
+        from apps.audit.models import AuditLog
+        qs = AuditLog.objects.select_related('user', 'case').order_by('-created_at')
+
+        # 筛选
+        action = request.query_params.get('action')
+        if action:
+            qs = qs.filter(action=action)
+
+        username = request.query_params.get('username')
+        if username:
+            qs = qs.filter(user__username__icontains=username)
+
+        start_date = request.query_params.get('start_date')
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+
+        end_date = request.query_params.get('end_date')
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+
+        # 分页
+        page = int(request.query_params.get('page', 1))
+        page_size = int(request.query_params.get('page_size', 20))
+        total = qs.count()
+        start = (page - 1) * page_size
+        logs = qs[start:start + page_size]
+
+        items = []
+        for log in logs:
+            items.append({
+                'id': log.id,
+                'user': log.user.username if log.user else '系统',
+                'user_role': log.user.role if log.user else '',
+                'action': log.action,
+                'action_display': log.get_action_display(),
+                'case_id': log.case_id,
+                'details': log.details,
+                'created_at': log.created_at.isoformat(),
+            })
+
+        return Response({
+            'items': items,
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+        })

@@ -80,6 +80,11 @@ Page({
             }
             const updated = await updateProfile(updateData)
             setUser(updated as any)
+            // 立即更新头像首字和 profile，无需重进页面
+            this.setData({
+                profile: updated,
+                userInitial: (updated.full_name || updated.username || '?').charAt(0),
+            })
             wx.showToast({ title: '保存成功', icon: 'success' })
         } catch (err: any) {
             wx.showToast({ title: err.message || '保存失败', icon: 'none' })

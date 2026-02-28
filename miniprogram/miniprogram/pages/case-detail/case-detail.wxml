@@ -19,13 +19,60 @@
     </view>
   </view>
 
-  <!-- 有诊断结果时 -->
+  <!-- ========== 医生确认结果(主要) ========== -->
+  <block wx:if="{{doctorResult}}">
+
+    <!-- 医生信息标题行 -->
+    <view class="doctor-result-header">
+      <text class="doctor-result-icon">🩺</text>
+      <view class="doctor-result-info">
+        <text class="doctor-result-title">医生诊疗结果</text>
+        <text class="doctor-result-sub">{{doctorResult.doctorName}} · 已{{doctorResult.decision === 'revise' ? '修订' : '审核通过'}}</text>
+      </view>
+    </view>
+
+    <!-- 确认的证候 -->
+    <view class="card">
+      <text class="card-title">🏥 确认证候</text>
+      <view class="tag-grid">
+        <view class="tag tag-syndrome tag-confirmed" wx:for="{{doctorResult.syndromes}}" wx:key="name">
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="tag-sub">{{item.description}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 处方用药 -->
+    <view class="card">
+      <text class="card-title">💊 处方用药</text>
+      <view class="tag-grid">
+        <view class="tag tag-formula tag-confirmed" wx:for="{{doctorResult.herbs}}" wx:key="name">
+          <text>{{item.name}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 医嘱备注 -->
+    <view class="card" wx:if="{{doctorResult.note}}">
+      <text class="card-title">📋 医嘱</text>
+      <view class="note-box">
+        <text class="note-text">{{doctorResult.note}}</text>
+      </view>
+    </view>
+
+  </block>
+
+  <!-- ========== AI 分析结果 (有医生结论时作参考，无时作主要) ========== -->
   <block wx:if="{{result}}">
 
+    <view class="section-divider" wx:if="{{doctorResult}}">
+      <text class="divider-text">以下为 AI 辅助分析（仅供参考）</text>
+    </view>
+
     <!-- 证候分析 -->
-    <view class="card">
+    <view class="card {{doctorResult ? 'card-reference' : ''}}">
       <view class="card-title-row">
-        <text class="card-title">🩺 证候分析</text>
+        <text class="card-title">🩺 {{doctorResult ? 'AI 证候参考' : '证候分析'}}</text>
       </view>
       <view class="tag-grid">
         <view class="tag tag-syndrome" wx:for="{{result.syndromes}}" wx:key="name">
@@ -36,8 +83,8 @@
     </view>
 
     <!-- 推荐用药 -->
-    <view class="card">
-      <text class="card-title">💊 推荐用药</text>
+    <view class="card {{doctorResult ? 'card-reference' : ''}}">
+      <text class="card-title">💊 {{doctorResult ? 'AI 推荐用药参考' : '推荐用药'}}</text>
       <view class="tag-grid">
         <view class="tag tag-formula" wx:for="{{result.formulas}}" wx:key="name">
           <text>{{item.name}}</text>
@@ -46,7 +93,7 @@
     </view>
 
     <!-- 证据要点 -->
-    <view class="card">
+    <view class="card {{doctorResult ? 'card-reference' : ''}}">
       <text class="card-title">📝 证据要点</text>
       <view class="evidence-item" wx:for="{{result.evidence_points}}" wx:key="index">
         <view class="evidence-num">{{index + 1}}</view>
@@ -55,7 +102,7 @@
     </view>
 
     <!-- AI 综合分析（可折叠） -->
-    <view class="card">
+    <view class="card {{doctorResult ? 'card-reference' : ''}}">
       <view class="toggle-header" bindtap="toggleExplanation">
         <text class="card-title">🤖 AI 综合分析</text>
         <text class="toggle-arrow">{{showExplanation ? '▲' : '▼'}}</text>
@@ -78,7 +125,7 @@
         bindtap="onPreviewImage"
         data-url="{{item.fullUrl}}"
       >
-        <image src="{{item.fullUrl}}" class="asset-img" mode="aspectFill" />
+        <image src="{{item.fullUrl}}" class="asset-img" mode="aspectFill" lazy-load />
         <text class="asset-label">{{item.typeName}}</text>
       </view>
     </view>
