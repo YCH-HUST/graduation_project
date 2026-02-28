@@ -44,5 +44,51 @@ class MedicationLogViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return MedicationLog.objects.filter(plan__patient=self.request.user)
 
-    def perform_create(self, serializer):
-        serializer.save()
+    def create(self, request, *args, **kwargs):
+        plan_id = request.data.get('plan')
+        date = request.data.get('date')
+        slot = request.data.get('slot')
+        
+        if plan_id and date and slot:
+            from .models import MedicationPlan
+            try:
+                plan = MedicationPlan.objects.get(id=plan_id, patient=request.user)
+            except MedicationPlan.DoesNotExist:
+                return Response({'detail': '计划不存在或无权访问'}, status=status.HTTP_404_NOT_FOUND)
+            
+            taken = request.data.get('taken', False)
+            feedback = request.data.get('feedback', '')
+            
+            # 使用 update_or_create 避免重复打卡时的唯一性冲突 (400错误)
+            log, created = MedicationLog.objects.update_or_create(
+                plan=plan,
+                date=date,
+                slot=slot,
+                defaults={'taken': taken, 'feedback': feedback}
+            )
+            
+            # 如果有反馈留言，自动通知负责评估该病例的医生
+            if feedback:
+                try:
+                    latest_review = plan.case.reviews.latest('created_at')
+                    doctor = latest_review.doctor
+                    
+                    from apps.notifications.models import Notification
+                    Notification.objects.create(
+                        recipient=doctor,
+                        type='system',
+                        title='患者发送了新用药反馈',
+                        content=f"患者 {request.user.full_name or request.user.username} 提交了新的用药反馈：\n{feedback}",
+                        related_case=plan.case
+                    )
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).warning(f"发送用药反馈通知失败: {e}")
+
+            serializer = self.get_serializer(log)
+            return Response(
+                serializer.data, 
+                status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            )
+            
+        return super().create(request, *args, **kwargs)

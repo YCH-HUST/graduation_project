@@ -38,6 +38,17 @@ export interface PatientCase {
     created_at: string
 }
 
+// 用药反馈记录
+export interface MedicationLog {
+    id: number
+    plan: number
+    date: string
+    slot: 'morning' | 'afternoon' | 'evening'
+    taken: boolean
+    feedback: string
+    created_at: string
+}
+
 // 患者列表响应
 export interface PatientsListResponse {
     items: PatientListItem[]
@@ -50,6 +61,7 @@ export interface PatientsListResponse {
 export interface PatientDetailResponse {
     patient: PatientDetail
     cases: PatientCase[]
+    medication_logs?: MedicationLog[]
 }
 
 // 创建患者请求

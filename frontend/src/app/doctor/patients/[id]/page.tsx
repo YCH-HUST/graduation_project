@@ -30,6 +30,8 @@ import {
     Eye,
     Save,
     X,
+    MessageSquare,
+    Clock,
 } from 'lucide-react'
 
 export default function PatientDetailPage() {
@@ -354,6 +356,63 @@ export default function PatientDetailPage() {
                             <FileText className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
                             <p className="text-slate-500 dark:text-slate-400">
                                 该患者暂无病例记录
+                            </p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* 患者留言及用药反馈 */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-blue-500" />
+                        最近用药反馈
+                        <Badge variant="secondary" className="ml-2">
+                            {data.medication_logs?.length || 0} 条
+                        </Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {data.medication_logs && data.medication_logs.length > 0 ? (
+                        <div className="space-y-4">
+                            {data.medication_logs.map((log) => {
+                                const slotText = log.slot === 'morning' ? '晨间' :
+                                    log.slot === 'afternoon' ? '午后' : '晚间'
+                                return (
+                                    <div
+                                        key={log.id}
+                                        className="p-4 rounded-xl bg-slate-50 border border-slate-100 dark:bg-slate-800/50 dark:border-slate-700/50"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                                                <Calendar className="w-4 h-4" />
+                                                <span>{log.date}</span>
+                                                <Clock className="w-4 h-4 ml-2" />
+                                                <span>{slotText}</span>
+                                                <Badge
+                                                    variant={log.taken ? 'success' : 'secondary'}
+                                                    className="ml-2 px-1.5 py-0 h-5"
+                                                >
+                                                    {log.taken ? '已服药' : '未服药'}
+                                                </Badge>
+                                            </div>
+                                            <span className="text-xs text-slate-400">
+                                                提交于 {formatDateTime(log.created_at)}
+                                            </span>
+                                        </div>
+                                        <div className="mt-2 text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                            {log.feedback}
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                            <p className="text-slate-500 dark:text-slate-400">
+                                暂无用药反馈记录
                             </p>
                         </div>
                     )}
