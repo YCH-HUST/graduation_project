@@ -2,11 +2,7 @@
 
   <!-- 头部 -->
   <view class="profile-header">
-    <view class="avatar-big">
-      <text class="avatar-big-text">
-        {{userInitial}}
-      </text>
-    </view>
+    <view class="avatar-big"><text class="avatar-big-text">{{userInitial}}</text></view>
     <text class="username-text">@{{username}}</text>
   </view>
 
@@ -65,18 +61,18 @@
       />
     </view>
 
-    <button
-      class="btn-primary {{isSaving ? 'btn-disabled' : ''}}"
-      disabled="{{isSaving}}"
-      bindtap="onSave"
-      style="margin-top:16rpx"
-    >
-      {{isSaving ? '保存中...' : '💾 保存修改'}}
-    </button>
+    <view style="display:flex;gap:20rpx;margin-top:16rpx">
+      <button
+        class="btn-primary {{isSaving ? 'btn-disabled' : ''}}"
+        disabled="{{isSaving}}"
+        bindtap="onSave"
+        style="flex:2"
+      >
+        {{isSaving ? '保存中...' : '💾 保存修改'}}
+      </button>
+      <button class="logout-btn" bindtap="onLogout" style="flex:1">退出登录</button>
+    </view>
   </view>
-
-  <!-- 退出登录 -->
-  <button class="logout-btn" bindtap="onLogout">退出登录</button>
 
 </view>
 
