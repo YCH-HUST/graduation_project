@@ -62,17 +62,20 @@
 
   </block>
 
-  <!-- ========== AI 分析结果 (有医生结论时作参考，无时作主要) ========== -->
+  <!-- ========== AI 分析结果（始终作为参考） ========== -->
   <block wx:if="{{result}}">
 
     <view class="section-divider" wx:if="{{doctorResult}}">
       <text class="divider-text">以下为 AI 辅助分析（仅供参考）</text>
     </view>
+    <view class="section-divider" wx:elif="{{!doctorResult}}">
+      <text class="divider-text">AI 辅助诊断（供参考，以医生最终诊断为准）</text>
+    </view>
 
-    <!-- 证候分析 -->
-    <view class="card {{doctorResult ? 'card-reference' : ''}}">
+    <!-- AI 证候参考 -->
+    <view class="card card-reference">
       <view class="card-title-row">
-        <text class="card-title">🩺 {{doctorResult ? 'AI 证候参考' : '证候分析'}}</text>
+        <text class="card-title">🩺 AI 证候参考</text>
       </view>
       <view class="tag-grid">
         <view class="tag tag-syndrome" wx:for="{{result.syndromes}}" wx:key="name">
@@ -82,9 +85,9 @@
       </view>
     </view>
 
-    <!-- 推荐用药 -->
-    <view class="card {{doctorResult ? 'card-reference' : ''}}">
-      <text class="card-title">💊 {{doctorResult ? 'AI 推荐用药参考' : '推荐用药'}}</text>
+    <!-- AI 推荐用药参考 -->
+    <view class="card card-reference">
+      <text class="card-title">💊 AI 推荐用药参考</text>
       <view class="tag-grid">
         <view class="tag tag-formula" wx:for="{{result.formulas}}" wx:key="name">
           <text>{{item.name}}</text>
@@ -93,7 +96,7 @@
     </view>
 
     <!-- 证据要点 -->
-    <view class="card {{doctorResult ? 'card-reference' : ''}}">
+    <view class="card card-reference">
       <text class="card-title">📝 证据要点</text>
       <view class="evidence-item" wx:for="{{result.evidence_points}}" wx:key="index">
         <view class="evidence-num">{{index + 1}}</view>
@@ -102,7 +105,7 @@
     </view>
 
     <!-- AI 综合分析（可折叠） -->
-    <view class="card {{doctorResult ? 'card-reference' : ''}}">
+    <view class="card card-reference">
       <view class="toggle-header" bindtap="toggleExplanation">
         <text class="card-title">🤖 AI 综合分析</text>
         <text class="toggle-arrow">{{showExplanation ? '▲' : '▼'}}</text>

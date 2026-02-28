@@ -171,6 +171,11 @@ Page({
 
     // ===== 提交病例 =====
     async onSubmitCase() {
+        // 表单验证（直接在此校验，跳过 YOLO 预检）
+        if (!this.validateForm()) {
+            wx.showToast({ title: '请完善必填信息', icon: 'none' })
+            return
+        }
         this.setData({ step: 'submitting', stepNum: 5 })
         try {
             const { imagePath, questionnaire, selectedDoctorId } = this.data

@@ -165,71 +165,28 @@
           bindinput="onQuestionnaireInput" data-field="additional_notes" auto-height />
       </view>
 
-      <button class="btn-primary" bindtap="onDetect">🔍 开始舌象检测</button>
+      <button class="btn-primary" bindtap="onSubmitCase">🚀 提交病例，开始 AI 分析</button>
     </view>
   </block>
 
-  <!-- ===== 检测中 ===== -->
-  <block wx:elif="{{step === 'detecting'}}">
-    <view class="status-card">
-      <text class="status-icon anim-pulse">🔍</text>
-      <text class="status-title">正在检测舌象</text>
-      <text class="status-desc">AI 正在分析您的舌象图片，请稍候...</text>
-    </view>
-  </block>
 
-  <!-- ===== Step 4: 检测结果 ===== -->
-  <block wx:elif="{{step === 'detected'}}">
-    <view class="step-header">
-      <view class="back-btn" bindtap="onBackToForm">‹ 重新检测</view>
-      <text class="step-title">舌象检测结果</text>
-    </view>
 
-    <!-- 标注图 -->
-    <view class="card" wx:if="{{annotatedImage}}">
-      <text class="card-title">标注结果</text>
-      <image src="{{annotatedImage}}" class="annotated-img" mode="widthFix" />
-    </view>
 
-    <!-- 检测详情 -->
-    <view class="card">
-      <text class="card-title">检测详情（共 {{detections.length}} 个目标）</text>
-      <view wx:if="{{detections.length === 0}}" class="empty-wrap" style="padding:40rpx 0">
-        <text class="empty-icon">⚠️</text>
-        <text class="empty-desc">未检测到舌象特征，请检查图片质量</text>
-      </view>
-      <view
-        class="detection-item"
-        wx:for="{{detections}}"
-        wx:key="index"
-      >
-        <view class="detection-dot"></view>
-        <view class="detection-info">
-          <text class="detection-name">{{item.class_name}}</text>
-          <text class="detection-id">类别 ID: {{item.class_id}}</text>
-        </view>
-        <view class="conf-badge {{item.confClass}}">
-          {{item.confText}}%
-        </view>
-      </view>
-    </view>
 
-    <button class="btn-primary" bindtap="onSubmitCase">确认提交病例 →</button>
-  </block>
-
-  <!-- ===== Step 5: 处理中 ===== -->
+  <!-- ===== Step 5: 处理中 / 完成 ===== -->
   <block wx:elif="{{step === 'submitting' || step === 'processing' || step === 'success'}}">
     <view class="status-card">
-      <text class="status-icon {{step === 'success' ? '' : 'anim-pulse'}}">
-        {{step === 'success' ? '✅' : '⚙️'}}
-      </text>
-      <text class="status-title">{{step === 'success' ? '诊断完成' : '正在分析中'}}</text>
-      <text class="status-desc">{{step === 'success' ? '即将跳转到结果页...' : 'AI 正在分析您的舌象数据'}}</text>
-
-      <view class="progress-wrap" style="margin:32rpx 0 16rpx">
-        <view class="progress-bar" style="width:{{progress}}%"></view>
+      <view class="status-orb {{step === 'success' ? 'orb-success' : 'orb-processing'}}">
+        <text class="status-orb-icon">{{step === 'success' ? '✅' : '⚙️'}}</text>
       </view>
-      <text style="font-size:26rpx;color:#10b981;font-weight:700">{{progress}}%</text>
+      <text class="status-title">{{step === 'success' ? '诊断分析完成！' : 'AI 深度辨证分析中...'}}</text>
+      <text class="status-desc">{{step === 'success' ? '即将跳转到结果页...' : '正在综合舌诊、症状进行多维度辨证'}}</text>
+
+      <!-- 进度条 -->
+      <view class="progress-wrap" style="margin:36rpx 0 12rpx">
+        <view class="progress-bar {{step === 'success' ? 'progress-full' : ''}}" style="width:{{progress}}%"></view>
+      </view>
+      <text class="progress-pct">{{progress}}%</text>
 
       <!-- 阶段指示器 -->
       <view class="stages-row">
