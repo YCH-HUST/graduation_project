@@ -63,7 +63,11 @@ def notify_patient_case_reviewed(case, decision, doctor):
     
     if decision == 'approved':
         title = '病例已通过审核'
-        content = f'您的病例已被 {doctor_name} 医生审核通过。'
+        content = f'您的病例已被 {doctor_name} 医生审核通过，请查看最终诊疗结果。'
+        notification_type = 'case_approved'
+    elif decision == 'revise':
+        title = '医生已修订您的诊断结果'
+        content = f'{doctor_name} 医生对您的病例进行了修订，已确认最终证候和处方，请查看详情。'
         notification_type = 'case_approved'
     else:
         title = '病例审核未通过'

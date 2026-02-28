@@ -250,7 +250,7 @@ class CaseViewSet(viewsets.GenericViewSet):
 
         history = []
         for c in cases:
-            run = c.pipeline_runs.filter(status='success').order_by('-created_at').first()
+            run = c.pipeline_runs.filter(status='completed').order_by('-created_at').first()
             if not run:
                 continue
 

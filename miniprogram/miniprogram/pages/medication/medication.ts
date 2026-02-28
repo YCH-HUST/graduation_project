@@ -77,23 +77,28 @@ Page({
     },
 
     async onSubmitFeedback() {
-        if (!this.data.feedback) {
+        if (!this.data.feedback.trim()) {
             wx.showToast({ title: '请输入内容', icon: 'none' })
             return
         }
 
         wx.showLoading({ title: '保存中' })
         try {
-            const activeSlot = this.data.slots.find(s => s.taken)?.key || 'morning'
+            // 优先使用已打卡的时段；若均未打卡，则以 morning 存储反馈（不强制 taken=true）
+            const takenSlot = this.data.slots.find(s => s.taken)
+            const targetSlot = takenSlot?.key || 'morning'
+
             await submitMedicationLog({
                 plan: this.data.plan.id,
                 date: this.data.today,
-                slot: activeSlot as any,
-                taken: true,
+                slot: targetSlot as any,
+                taken: takenSlot ? true : false,
                 feedback: this.data.feedback
             })
             wx.hideLoading()
             wx.showToast({ title: '反馈已保存', icon: 'success' })
+            // 刷新数据使 UI 与后端同步
+            this.refreshData()
         } catch (err: any) {
             wx.hideLoading()
             wx.showToast({ title: err.message || '保存失败', icon: 'none' })
