@@ -22,9 +22,7 @@
       </view>
       <view class="info-item">
         <text class="info-label">性别</text>
-        <text class="info-value">
-          {{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}}
-        </text>
+        <text class="info-value">{{userInfo.gender === 'male' ? '男' : userInfo.gender === 'female' ? '女' : '未设置'}}</text>
       </view>
       <view class="info-item">
         <text class="info-label">年龄</text>

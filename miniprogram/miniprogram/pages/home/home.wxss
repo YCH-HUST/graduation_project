@@ -80,7 +80,10 @@
   background: #f8fafc;
   border-radius: 16rpx;
   padding: 16rpx 12rpx;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .info-label {
