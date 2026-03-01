@@ -108,6 +108,32 @@ class CaseViewSet(viewsets.GenericViewSet):
             'latest_review': latest_review_data,
         })
     
+    def destroy(self, request, pk=None):
+        """
+        DELETE /api/cases/{id}/
+        患者撤回（删除）自己的病例
+        """
+        try:
+            case = Case.objects.get(pk=pk)
+        except Case.DoesNotExist:
+            return Response({'detail': '病例不存在'}, status=status.HTTP_404_NOT_FOUND)
+            
+        # 权限校验：必须是本人的病例
+        if request.user.role == 'patient' and case.patient != request.user:
+            return Response({'detail': '无权操作此病例'}, status=status.HTTP_403_FORBIDDEN)
+            
+        # 状态校验：只有 pending_review 的才能撤回
+        if case.status != 'pending_review':
+            return Response({'detail': '该病例已被处理，无法撤回'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # 执行删除（级联删除会清理关联的 run 和 notification）
+        case.delete()
+        
+        # 记录审计日志
+        log_action(user=request.user, action='case_delete', case=None)
+        
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def list(self, request):
         """
         GET /api/cases?status=pending_review&page=1&page_size=10&search=关键词

@@ -9,6 +9,11 @@
     <view class="badge {{statusBgClass}}">{{statusText}}</view>
   </view>
 
+  <!-- 操作栏 (仅 pending_review 状态可撤回) -->
+  <view class="action-bar" wx:if="{{caseData.status === 'pending_review'}}">
+    <button class="btn-outline-danger" bindtap="onWithdrawCase">放弃并撤回该诊断</button>
+  </view>
+
   <!-- 处理中提示 -->
   <view class="card processing-card" wx:if="{{caseData.status === 'running' || caseData.status === 'created'}}">
     <text class="processing-icon">⚙️</text>

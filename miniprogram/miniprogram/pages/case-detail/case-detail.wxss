@@ -109,7 +109,29 @@
 
 /* 医生确认的标签（更深绿/青色） */
 .tag-confirmed.tag-syndrome { background: #059669; color: #ffffff; }
-.tag-confirmed.tag-formula { background: #0891b2; color: #ffffff; }
+.tag-confirmed.badge-error { background: #fee2e2; color: #ef4444; }
+
+/* 操作栏 */
+.action-bar {
+  margin: 0 32rpx 24rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  color: #ef4444;
+  border: 2rpx solid #fca5a5;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  padding: 12rpx 24rpx;
+  line-height: 1;
+  margin: 0;
+  white-space: nowrap;
+}
+.btn-outline-danger:active {
+  background: #fef2f2;
+}
 
 /* 医嘱框 */
 .note-box {

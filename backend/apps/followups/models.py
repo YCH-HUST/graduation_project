@@ -22,6 +22,7 @@ class MedicationPlan(models.Model):
         verbose_name='患者'
     )
     is_active = models.BooleanField(default=True, verbose_name='是否激活')
+    end_date = models.DateField(null=True, blank=True, verbose_name='计划结束日期')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     class Meta:

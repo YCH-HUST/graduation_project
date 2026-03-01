@@ -10,7 +10,8 @@ Page({
             { key: 'morning', name: '晨间服药', icon: '🌅', taken: false },
             { key: 'afternoon', name: '午后服药', icon: '☀️', taken: false },
             { key: 'evening', name: '晚间服药', icon: '🌙', taken: false }
-        ]
+        ],
+        history: [] as any[]
     },
 
     onLoad() {
@@ -39,15 +40,36 @@ Page({
             // 找今日的反馈
             const lastFeedback = todayLogs.find((l: any) => l.feedback)?.feedback || ''
 
+            // 计算过去 14 天及今天的历史记录
+            const history: any[] = []
+            const now = new Date()
+            for (let i = 14; i >= 0; i--) {
+                const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+                const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+                // 该日子的所有记录
+                const dayLogs = (plan.logs || []).filter((l: any) => l.date === dStr)
+                // 如果有早中晚三顿中任意一顿 `taken=true` 即算当日有打卡记录，如果全部 `taken=true` 算是全勤
+                const takenCount = dayLogs.filter((l: any) => l.taken).length
+
+                history.push({
+                    dateStr: dStr,
+                    dayDisplay: `${d.getMonth() + 1}/${d.getDate()}`,
+                    status: takenCount > 0 ? (takenCount >= 3 ? 'full' : 'partial') : 'missed',
+                    hasFuture: false
+                })
+            }
+
             this.setData({
                 plan,
                 slots: newSlots,
                 feedback: lastFeedback,
+                history,
                 isLoading: false
             })
         } catch (_err) {
             // 404 = 没有计划，属于正常业务
-            this.setData({ plan: null, isLoading: false })
+            this.setData({ plan: null, history: [], isLoading: false })
         }
     },
 

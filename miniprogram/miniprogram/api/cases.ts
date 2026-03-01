@@ -158,6 +158,15 @@ export function getCaseDetail(caseId: string): Promise<CaseDetailResponse> {
 }
 
 /**
+ * 撤回（删除）病例
+ */
+export function deleteCase(caseId: string): Promise<void> {
+    return request<void>(`/api/cases/${caseId}/`, {
+        method: 'DELETE',
+    })
+}
+
+/**
  * 获取病例列表
  */
 export function getCaseList(params: {

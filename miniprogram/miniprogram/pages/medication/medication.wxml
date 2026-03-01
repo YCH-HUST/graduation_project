@@ -39,6 +39,26 @@
       </view>
     </view>
 
+    <!-- 历史打卡记录 (过去 14 天) -->
+    <view class="card history-card" wx:if="{{history.length > 0}}">
+      <view class="card-header">
+        <text class="title">📅 近期打卡历史</text>
+      </view>
+      <scroll-view class="history-scroll" scroll-x="true">
+        <view class="history-track">
+          <view wx:for="{{history}}" wx:key="dateStr" class="history-day">
+            <text class="history-date">{{item.dayDisplay}}</text>
+            <view class="history-dot {{item.status}}"></view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="history-legend">
+        <view class="legend-item"><view class="history-dot full"></view><text>全勤</text></view>
+        <view class="legend-item"><view class="history-dot partial"></view><text>部分</text></view>
+        <view class="legend-item"><view class="history-dot missed"></view><text>漏服</text></view>
+      </view>
+    </view>
+
     <!-- 反馈留言 -->
     <view class="card feedback-card">
       <view class="card-header">

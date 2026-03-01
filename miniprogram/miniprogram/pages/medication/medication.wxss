@@ -138,3 +138,68 @@
   color: #94a3b8;
   margin-top: 10rpx;
 }
+
+/* 历史卡片 */
+.history-scroll {
+  width: 100%;
+  padding-bottom: 20rpx;
+}
+
+.history-track {
+  display: flex;
+  gap: 24rpx;
+  padding: 0 10rpx;
+}
+
+.history-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  flex-shrink: 0;
+}
+
+.history-date {
+  font-size: 20rpx;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.history-dot {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 18rpx;
+  background: #f1f5f9;
+}
+
+.history-dot.full {
+  background: #10b981;
+}
+
+.history-dot.partial {
+  background: #f59e0b;
+}
+
+.history-dot.missed {
+  background: #ef4444;
+}
+
+.history-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 32rpx;
+  margin-top: 12rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 22rpx;
+  color: #64748b;
+}
+
+.legend-item .history-dot {
+  width: 16rpx;
+  height: 16rpx;
+}

@@ -10,8 +10,8 @@ from .models import MedicationPlan, MedicationLog
 from .serializers import MedicationPlanSerializer, MedicationLogSerializer
 
 
-class MedicationPlanViewSet(viewsets.ReadOnlyModelViewSet):
-    """用药计划 ViewSet — 只读 + current 动作"""
+class MedicationPlanViewSet(viewsets.ModelViewSet):
+    """用药计划 ViewSet"""
     serializer_class = MedicationPlanSerializer
     permission_classes = [IsAuthenticated]
 

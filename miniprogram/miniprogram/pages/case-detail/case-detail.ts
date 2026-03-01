@@ -119,4 +119,30 @@ Page({
     onReload() {
         this.loadDetail(this.data.caseId)
     },
+
+    onWithdrawCase() {
+        wx.showModal({
+            title: '撤回病例',
+            content: '确定放弃并撤回该诊断申请吗？撤回后将无法恢复。',
+            confirmColor: '#ef4444',
+            success: async (res) => {
+                if (res.confirm) {
+                    wx.showLoading({ title: '撤回中...' })
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-require-imports
+                        const { deleteCase } = require('../../api/cases')
+                        await deleteCase(this.data.caseId)
+                        wx.hideLoading()
+                        wx.showToast({ title: '已撤回', icon: 'success' })
+                        setTimeout(() => {
+                            wx.switchTab({ url: '/pages/home/home' })
+                        }, 1000)
+                    } catch (err: any) {
+                        wx.hideLoading()
+                        wx.showToast({ title: err.message || '撤回失败', icon: 'none' })
+                    }
+                }
+            }
+        })
+    }
 })

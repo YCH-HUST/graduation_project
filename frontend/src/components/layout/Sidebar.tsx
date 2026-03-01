@@ -105,10 +105,13 @@ export function Sidebar() {
         }
 
         fetchUnread()
-        timerRef.current = setInterval(fetchUnread, 30000) // 每 30 秒刷新一次
+        timerRef.current = setInterval(fetchUnread, 2000) // 每 2 秒刷新一次
+
+        window.addEventListener('notifications-read', fetchUnread)
 
         return () => {
             if (timerRef.current) clearInterval(timerRef.current)
+            window.removeEventListener('notifications-read', fetchUnread)
         }
     }, [role])
 

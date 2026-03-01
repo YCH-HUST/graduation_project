@@ -115,17 +115,23 @@ class PatientDetailView(APIView):
         # 获取患者的病例列表
         cases = Case.objects.filter(patient=patient).order_by('-created_at')
 
+        from apps.followups.models import MedicationLog, MedicationPlan
+        from apps.followups.serializers import MedicationLogSerializer, MedicationPlanSerializer
+        
         # 获取带有反馈留言的用药记录，最多返回 50 条最近的
-        from apps.followups.models import MedicationLog
-        from apps.followups.serializers import MedicationLogSerializer
         logs = MedicationLog.objects.filter(
             plan__patient=patient
         ).exclude(feedback='').order_by('-date', '-created_at')[:50]
+        
+        # 获取最新的用药计划
+        plan = MedicationPlan.objects.filter(patient=patient).order_by('-created_at').first()
+        plan_data = MedicationPlanSerializer(plan).data if plan else None
         
         return Response({
             'patient': PatientDetailSerializer(patient).data,
             'cases': PatientCaseSerializer(cases, many=True).data,
             'medication_logs': MedicationLogSerializer(logs, many=True).data,
+            'medication_plan': plan_data,
         })
     
     def put(self, request, pk):

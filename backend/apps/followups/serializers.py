@@ -19,5 +19,5 @@ class MedicationPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MedicationPlan
-        fields = ['id', 'case_id', 'patient_id', 'is_active', 'created_at', 'logs']
+        fields = ['id', 'case_id', 'patient_id', 'is_active', 'end_date', 'created_at', 'logs']
         read_only_fields = ['id', 'created_at']

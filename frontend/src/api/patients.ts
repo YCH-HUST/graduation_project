@@ -49,6 +49,17 @@ export interface MedicationLog {
     created_at: string
 }
 
+// 用药计划
+export interface MedicationPlan {
+    id: number
+    case_id: string
+    patient_id: number
+    is_active: boolean
+    end_date: string | null
+    created_at: string
+    logs?: MedicationLog[]
+}
+
 // 患者列表响应
 export interface PatientsListResponse {
     items: PatientListItem[]
@@ -62,6 +73,7 @@ export interface PatientDetailResponse {
     patient: PatientDetail
     cases: PatientCase[]
     medication_logs?: MedicationLog[]
+    medication_plan?: MedicationPlan
 }
 
 // 创建患者请求
@@ -80,6 +92,12 @@ export interface UpdatePatientRequest {
     email?: string
     gender?: 'male' | 'female' | ''
     age?: number | null
+}
+
+// 更新用药计划请求
+export interface UpdatePlanRequest {
+    is_active?: boolean
+    end_date?: string | null
 }
 
 // 查询参数
@@ -141,6 +159,17 @@ export async function deletePatient(id: number): Promise<{ ok: boolean }> {
         return mockDeletePatient(id)
     }
     const response = await apiClient.delete<{ ok: boolean }>(`/api/doctor/patients/${id}/`)
+    return response.data
+}
+
+/**
+ * 更新用药计划
+ */
+export async function updateMedicationPlan(id: number, data: UpdatePlanRequest): Promise<MedicationPlan> {
+    if (isMockMode()) {
+        throw new Error('Mock mode not supported for this action')
+    }
+    const response = await apiClient.patch<MedicationPlan>(`/api/followups/plans/${id}/`, data)
     return response.data
 }
 

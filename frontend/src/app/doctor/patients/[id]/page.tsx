@@ -5,13 +5,8 @@
  */
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import {
-    getPatientDetail,
-    updatePatient,
-    deletePatient,
-    PatientDetailResponse,
-    UpdatePatientRequest,
-} from '@/api/patients'
+import { getPatientDetail, updatePatient, deletePatient, updateMedicationPlan } from '@/api/patients'
+import type { PatientDetailResponse, UpdatePatientRequest } from '@/api/patients'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -56,6 +51,14 @@ export default function PatientDetailPage() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
+    // 用药计划配置
+    const [isEditingPlan, setIsEditingPlan] = useState(false)
+    const [isSavingPlan, setIsSavingPlan] = useState(false)
+    const [planData, setPlanData] = useState({
+        is_active: false,
+        end_date: '' as string | null
+    })
+
     useEffect(() => {
         loadPatientDetail()
     }, [patientId])
@@ -71,6 +74,12 @@ export default function PatientDetailPage() {
                 gender: (response.patient.gender as 'male' | 'female' | '') || '',
                 age: response.patient.age?.toString() || '',
             })
+            if (response.medication_plan) {
+                setPlanData({
+                    is_active: response.medication_plan.is_active,
+                    end_date: response.medication_plan.end_date || ''
+                })
+            }
         } catch (err: any) {
             console.error('Load patient error:', err)
             toast.error('加载失败', { description: err.message })
@@ -109,6 +118,24 @@ export default function PatientDetailPage() {
             toast.error('删除失败', { description: err.message })
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    const handleSavePlan = async () => {
+        if (!data?.medication_plan) return
+        try {
+            setIsSavingPlan(true)
+            await updateMedicationPlan(data.medication_plan.id, {
+                is_active: planData.is_active,
+                end_date: planData.end_date || null
+            })
+            toast.success('用药计划已更新')
+            setIsEditingPlan(false)
+            loadPatientDetail()
+        } catch (err: any) {
+            toast.error('更新失败', { description: err.message })
+        } finally {
+            setIsSavingPlan(false)
         }
     }
 
@@ -369,12 +396,12 @@ export default function PatientDetailPage() {
                         <MessageSquare className="w-5 h-5 text-blue-500" />
                         最近用药反馈
                         <Badge variant="secondary" className="ml-2">
-                            {data.medication_logs?.length || 0} 条
+                            {data?.medication_logs?.length || 0} 条
                         </Badge>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {data.medication_logs && data.medication_logs.length > 0 ? (
+                    {data?.medication_logs && data.medication_logs.length > 0 ? (
                         <div className="space-y-4">
                             {data.medication_logs.map((log) => {
                                 const slotText = log.slot === 'morning' ? '晨间' :

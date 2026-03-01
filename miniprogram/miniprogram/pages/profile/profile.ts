@@ -69,14 +69,41 @@ Page({
     },
 
     async onSave() {
+        const { formData } = this.data
+
+        // 简易校验姓名必填
+        if (!formData.full_name?.trim()) {
+            wx.showToast({ title: '姓名不能为空', icon: 'none' })
+            return
+        }
+
+        // 邮箱格式正则检查
+        if (formData.email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            if (!emailRegex.test(formData.email)) {
+                wx.showToast({ title: '邮箱格式不正确', icon: 'none' })
+                return
+            }
+        }
+
+        // 年龄范围 (0-150)
+        let parsedAge: number | undefined = undefined
+        if (formData.age !== '' && formData.age !== null && formData.age !== undefined) {
+            const ageVal = Number(formData.age)
+            if (isNaN(ageVal) || ageVal < 1 || ageVal > 150) {
+                wx.showToast({ title: '年龄必须在 1 ~ 150 之间', icon: 'none' })
+                return
+            }
+            parsedAge = ageVal
+        }
+
         this.setData({ isSaving: true })
         try {
-            const { formData } = this.data
             const updateData: any = {
-                full_name: formData.full_name || undefined,
-                email: formData.email || undefined,
+                full_name: formData.full_name.trim(),
+                email: formData.email ? formData.email.trim() : undefined,
                 gender: formData.gender || undefined,
-                age: formData.age ? Number(formData.age) : undefined,
+                age: parsedAge,
             }
             const updated = await updateProfile(updateData)
             setUser(updated as any)

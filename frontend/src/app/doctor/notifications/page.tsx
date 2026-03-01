@@ -67,6 +67,7 @@ export default function NotificationsPage() {
                     unread_count: Math.max(0, data.unread_count - 1),
                 })
             }
+            window.dispatchEvent(new Event('notifications-read'))
         } catch (err: any) {
             toast.error('操作失败', { description: err.message })
         }
@@ -84,6 +85,7 @@ export default function NotificationsPage() {
                     unread_count: 0,
                 })
             }
+            window.dispatchEvent(new Event('notifications-read'))
             toast.success('已全部标记为已读')
         } catch (err: any) {
             toast.error('操作失败', { description: err.message })
