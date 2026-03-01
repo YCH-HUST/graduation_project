@@ -3,9 +3,11 @@
     "pages/login/login",
     "pages/home/home",
     "pages/new-case/new-case",
+    "pages/messages/messages",
     "pages/case-detail/case-detail",
     "pages/profile/profile",
-    "pages/medication/medication"
+    "pages/medication/medication",
+    "pages/chat/chat"
   ],
   "window": {
     "navigationBarTextStyle": "white",
@@ -27,10 +29,10 @@
         "selectedIconPath": "images/home_active.png"
       },
       {
-        "pagePath": "pages/new-case/new-case",
-        "text": "新建病例",
-        "iconPath": "images/new_case.png",
-        "selectedIconPath": "images/new_case_active.png"
+        "pagePath": "pages/messages/messages",
+        "text": "消息",
+        "iconPath": "images/home.png",
+        "selectedIconPath": "images/home_active.png"
       },
       {
         "pagePath": "pages/profile/profile",

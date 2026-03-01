@@ -24,10 +24,18 @@ Page({
             return
         }
         this.setData({ caseId: id })
-        this.loadDetail(id)
+        this.loadCaseDetail(id)
     },
 
-    async loadDetail(caseId: string) {
+    navToChat() {
+        if (this.data.caseData?.patient_id) {
+            wx.navigateTo({
+                url: `/pages/chat/chat?patient_id=${this.data.caseData.patient_id}`
+            })
+        }
+    },
+
+    async loadCaseDetail(caseId: string) {
         this.setData({ isLoading: true, error: '' })
         try {
             const data = await getCaseDetail(caseId)
@@ -117,7 +125,7 @@ Page({
     },
 
     onReload() {
-        this.loadDetail(this.data.caseId)
+        this.loadCaseDetail(this.data.caseId)
     },
 
     onWithdrawCase() {

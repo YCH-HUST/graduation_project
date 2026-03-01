@@ -93,16 +93,25 @@ class DoctorStatisticsView(APIView):
                 {'name': '肾阳虚证', 'count': approved_count // 8 if approved_count > 0 else 0},
             ]
         
-        # 最近审核记录
+        # 最近审核记录 (每份病例仅显示最新的那次审核结果)
         recent_reviews = []
-        for review in reviews.select_related('case__patient').order_by('-created_at')[:5]:
-            recent_reviews.append({
-                'id': review.id,
-                'case_id': str(review.case.id),
-                'patient_name': review.case.patient.full_name or review.case.patient.username,
-                'decision': review.decision,
-                'created_at': review.created_at.isoformat(),
-            })
+        seen_case_ids = set()
+        
+        # 按照时间倒序获取所有的审核记录
+        for review in reviews.select_related('case__patient').order_by('-created_at'):
+            if review.case_id not in seen_case_ids:
+                seen_case_ids.add(review.case_id)
+                recent_reviews.append({
+                    'id': review.id,
+                    'case_id': str(review.case.id),
+                    'patient_name': review.case.patient.full_name or review.case.patient.username,
+                    'decision': review.decision,
+                    'created_at': review.created_at.isoformat(),
+                })
+            
+            # 收集满 5 条即可结束
+            if len(recent_reviews) >= 5:
+                break
         
         return Response({
             'overview': overview,

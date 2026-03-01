@@ -99,7 +99,7 @@ Page({
     },
 
     onNewCase() {
-        wx.switchTab({ url: '/pages/new-case/new-case' })
+        wx.navigateTo({ url: '/pages/new-case/new-case' })
     },
 
     onProfile() {

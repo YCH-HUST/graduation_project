@@ -52,6 +52,7 @@ import {
     Legend,
     ResponsiveContainer,
 } from 'recharts'
+import { DoctorChatBox } from '@/components/chat/DoctorChatBox'
 
 // 配色
 const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
@@ -604,6 +605,14 @@ export default function ReviewPage() {
                     </Card>
                 </div>
             </div>
+
+            {/* 客服悬浮框 */}
+            {data?.case && (
+                <DoctorChatBox
+                    patientId={data.case.patient_id}
+                    patientName={data.case.patient_name || '患者'}
+                />
+            )}
         </div>
     )
 }

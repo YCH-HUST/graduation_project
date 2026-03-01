@@ -148,6 +148,11 @@
     </view>
   </view>
 
+  <!-- 医患沟通悬浮窗按钮 -->
+  <view class="chat-float-btn" bindtap="navToChat" wx:if="{{!isLoading && !error}}">
+    <text>💬 医患沟通</text>
+  </view>
+
 </view>
 
 <!-- 加载中 -->

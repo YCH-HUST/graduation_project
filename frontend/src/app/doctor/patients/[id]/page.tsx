@@ -28,6 +28,7 @@ import {
     MessageSquare,
     Clock,
 } from 'lucide-react'
+import { DoctorChatBox } from '@/components/chat/DoctorChatBox'
 
 export default function PatientDetailPage() {
     const params = useParams()
@@ -58,6 +59,8 @@ export default function PatientDetailPage() {
         is_active: false,
         end_date: '' as string | null
     })
+
+    const [chatInitOpen, setChatInitOpen] = useState(false)
 
     useEffect(() => {
         loadPatientDetail()
@@ -205,6 +208,7 @@ export default function PatientDetailPage() {
                             </>
                         ) : (
                             <>
+
                                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                                     <Edit className="w-4 h-4 mr-1" />
                                     编辑
@@ -479,6 +483,14 @@ export default function PatientDetailPage() {
                     </div>
                 </div>
             )}
+
+            {/* Chat Box (Floating) */}
+            <DoctorChatBox
+                patientId={patientId}
+                patientName={patient.full_name || patient.username}
+                mode="floating"
+                initOpen={chatInitOpen}
+            />
         </div>
     )
 }

@@ -1,0 +1,26 @@
+<view class="chat-container">
+  <scroll-view class="chat-list" scroll-y scroll-into-view="{{scrollToMessage}}" scroll-with-animation>
+    <view wx:if="{{isLoading}}" class="loading-wrap">
+      <view class="loading-icon"></view>
+      <text>加载中...</text>
+    </view>
+    <view wx:elif="{{messages.length === 0}}" class="empty-wrap">
+      <text>暂无消息，发送消息开始与医生沟通</text>
+    </view>
+    <block wx:else>
+      <view class="message-item {{item.sender == myUserId ? 'me' : 'other'}}" wx:for="{{messages}}" wx:key="id" id="msg-{{item.id}}">
+        <view class="message-content">
+          <text>{{item.content}}</text>
+        </view>
+        <view class="message-time">{{item.formatTime}}</view>
+      </view>
+      <!-- 给底条占位 -->
+      <view class="bottom-spacer"></view>
+    </block>
+  </scroll-view>
+
+  <view class="input-bar">
+    <input class="input-box" placeholder="输入要发送的消息" value="{{inputValue}}" bindinput="onInput" bindconfirm="onSend" cursor-spacing="20" hold-keyboard="{{true}}" />
+    <button class="send-btn" type="primary" size="mini" bindtap="onSend" disabled="{{!inputValue || isSending}}">发送</button>
+  </view>
+</view>

@@ -1,0 +1,29 @@
+<view class="container">
+  <view class="header">
+    <text class="title">消息</text>
+  </view>
+
+  <scroll-view class="list-container" scroll-y>
+    <view wx:if="{{isLoading}}" class="loading">加载中...</view>
+    <view wx:elif="{{conversations.length === 0}}" class="empty">
+      <text>暂无消息记录</text>
+    </view>
+    <block wx:else>
+      <view class="conv-item" wx:for="{{conversations}}" wx:key="patient_id" bindtap="goToChat" data-id="{{item.patient_id}}">
+        <view class="avatar">
+          <image src="../../images/profile.png" mode="aspectFill"></image>
+          <view class="badge" wx:if="{{item.unread_count > 0}}">{{item.unread_count}}</view>
+        </view>
+        <view class="info">
+          <view class="top">
+            <text class="name">{{item.name}}</text>
+            <text class="time">{{item.formatTime}}</text>
+          </view>
+          <view class="bottom">
+            <text class="msg-text">{{item.latest_message}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'apps.adminops',
     'apps.notifications',
     'apps.followups',
+    'apps.chat',
 ]
 
 MIDDLEWARE = [

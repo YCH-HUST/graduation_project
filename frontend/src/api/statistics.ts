@@ -30,7 +30,7 @@ export interface RecentReview {
     id: number
     case_id: string
     patient_name: string
-    decision: 'approved' | 'rejected'
+    decision: 'approved' | 'rejected' | 'revise'
     created_at: string
 }
 

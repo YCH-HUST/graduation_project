@@ -26,6 +26,7 @@ import {
     X,
     Settings2,
     ScrollText,
+    MessageCircle,
 } from 'lucide-react'
 import type { UserRole } from '@/types'
 
@@ -41,9 +42,10 @@ const navItems: Record<UserRole, NavItem[]> = {
     doctor: [
         { label: '首页', href: '/doctor/home', icon: <Home className="w-5 h-5" /> },
         { label: '病例管理', href: '/doctor/dashboard', icon: <ClipboardCheck className="w-5 h-5" /> },
+        { label: '消息对话', href: '/doctor/chats', icon: <MessageCircle className="w-5 h-5" />, badgeKey: 'unreadChat' },
         { label: '患者管理', href: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
         { label: '数据统计', href: '/doctor/statistics', icon: <BarChart3 className="w-5 h-5" /> },
-        { label: '消息通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" />, badgeKey: 'unread' },
+        { label: '系统通知', href: '/doctor/notifications', icon: <Bell className="w-5 h-5" />, badgeKey: 'unread' },
         { label: '个人资料', href: '/doctor/profile', icon: <Settings className="w-5 h-5" /> },
     ],
     admin: [
@@ -74,6 +76,7 @@ export function Sidebar() {
     const { user, role, token, logout } = useAuthStore()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
     const [unreadCount, setUnreadCount] = useState(0)
+    const [unreadChatCount, setUnreadChatCount] = useState(0)
     const prevUnreadRef = useRef(0)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -176,6 +179,77 @@ export function Sidebar() {
         }
     }, [role, token])
 
+    // 医生端：建立全局聊天 SSE 长连接
+    useEffect(() => {
+        if (role !== 'doctor' || !token) return
+
+        const abortController = new AbortController()
+        let retryTimeout: NodeJS.Timeout
+
+        const connectChatSSE = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const response = await fetch(`${apiUrl}/api/chat/stream/global/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    signal: abortController.signal
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Chat SSE error: ${response.status}`)
+                }
+
+                if (!response.body) return
+
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
+                let buffer = ''
+
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    buffer += decoder.decode(value, { stream: true })
+                    const lines = buffer.split('\n')
+                    buffer = lines.pop() || ''
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim()
+                            if (!dataStr) continue
+                            try {
+                                const data = JSON.parse(dataStr)
+                                if (data.type === 'unread_count' && data.count !== undefined) {
+                                    setUnreadChatCount(data.count)
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') return
+                retryTimeout = setTimeout(connectChatSSE, 5000)
+            }
+        }
+
+        connectChatSSE()
+
+        // 当用户主动标记聊天已读时，为了UI“立刻消失”主动收到的事件
+        const handleChatLocalRead = () => {
+            // Just let SSE naturally poll back, or decrement speculatively.
+            // For now, we will wait for SSE to push if we don't have get global unread direct api,
+            // but SSE triggers fast enough.
+        }
+        window.addEventListener('chat-read', handleChatLocalRead)
+
+        return () => {
+            abortController.abort()
+            clearTimeout(retryTimeout)
+            window.removeEventListener('chat-read', handleChatLocalRead)
+        }
+    }, [role, token])
+
     if (!role) return null
 
     const items = navItems[role] || []
@@ -183,6 +257,7 @@ export function Sidebar() {
 
     const badges: Record<string, number> = {
         unread: unreadCount,
+        unreadChat: unreadChatCount,
     }
 
     const SidebarContent = () => (

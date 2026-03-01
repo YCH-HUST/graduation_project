@@ -21,6 +21,7 @@ import {
     Loader2,
     FileText,
     PieChart,
+    Edit,
 } from 'lucide-react'
 import {
     LineChart,
@@ -282,11 +283,15 @@ export default function StatisticsPage() {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${review.decision === 'approved'
-                                                ? 'bg-green-100 dark:bg-green-900/30'
+                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                            : review.decision === 'revise'
+                                                ? 'bg-blue-100 dark:bg-blue-900/30'
                                                 : 'bg-red-100 dark:bg-red-900/30'
                                             }`}>
                                             {review.decision === 'approved' ? (
                                                 <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                            ) : review.decision === 'revise' ? (
+                                                <Edit className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                             ) : (
                                                 <X className="w-5 h-5 text-red-600 dark:text-red-400" />
                                             )}
@@ -302,9 +307,16 @@ export default function StatisticsPage() {
                                     </div>
                                     <div className="text-right">
                                         <Badge
-                                            variant={review.decision === 'approved' ? 'success' : 'destructive'}
+                                            variant={
+                                                review.decision === 'approved'
+                                                    ? 'success'
+                                                    : review.decision === 'revise'
+                                                        ? 'default'
+                                                        : 'destructive'
+                                            }
+                                            className={review.decision === 'revise' ? 'bg-blue-500 hover:bg-blue-600 text-white' : ''}
                                         >
-                                            {review.decision === 'approved' ? '通过' : '驳回'}
+                                            {review.decision === 'approved' ? '通过' : review.decision === 'revise' ? '修订' : '驳回'}
                                         </Badge>
                                         <p className="text-xs text-slate-400 mt-1">
                                             {formatDateTime(review.created_at)}
