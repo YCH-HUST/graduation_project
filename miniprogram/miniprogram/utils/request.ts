@@ -72,7 +72,24 @@ export function request<T = any>(
                     resolve(res.data as T)
                 } else {
                     const errData = res.data as any
-                    reject(new Error(errData?.detail || `请求失败 (${statusCode})`))
+                    // 解析 DRF 各种错误格式 -> 返回人类可读的错误信息
+                    let errMsg = ''
+                    if (errData) {
+                        if (typeof errData.detail === 'string') {
+                            errMsg = errData.detail
+                        } else if (Array.isArray(errData.non_field_errors) && errData.non_field_errors.length > 0) {
+                            errMsg = errData.non_field_errors[0]
+                        } else if (typeof errData === 'object') {
+                            // 字段级别错误，如 { username: ["用户名已存在"] }
+                            const firstKey = Object.keys(errData)[0]
+                            if (firstKey) {
+                                const fieldErr = errData[firstKey]
+                                errMsg = Array.isArray(fieldErr) ? `${fieldErr[0]}` : String(fieldErr)
+                            }
+                        }
+                    }
+                    if (!errMsg) errMsg = `请求失败 (${statusCode})`
+                    reject(new Error(errMsg))
                 }
             },
             fail(err) {

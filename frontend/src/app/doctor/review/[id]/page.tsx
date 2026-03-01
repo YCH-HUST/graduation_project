@@ -552,7 +552,17 @@ export default function ReviewPage() {
 
                                     {/* 审核按钮 */}
                                     <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-                                        {isEditing ? (
+                                        {caseData.status !== 'pending_review' && caseData.status !== 'approved' ? (
+                                            <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                                                <div>
+                                                    <p className="text-sm font-medium text-amber-800 dark:text-amber-300">等待患者确认提交</p>
+                                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
+                                                        AI 诊断已完成，等待患者点击"确认提交给医生"后方可审核
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : isEditing ? (
                                             <div className="grid grid-cols-2 gap-3">
                                                 <Button
                                                     className="bg-emerald-600 hover:bg-emerald-700"

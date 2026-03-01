@@ -1,5 +1,5 @@
 // pages/case-detail/case-detail.ts
-import { getCaseDetail } from '../../api/cases'
+import { getCaseDetail, submitToDoctor } from '../../api/cases'
 import { STATUS_TEXT, STATUS_COLOR, ASSET_TYPE_NAMES } from '../../utils/constants'
 import type { CaseStatus } from '../../utils/constants'
 
@@ -148,6 +148,31 @@ Page({
                     } catch (err: any) {
                         wx.hideLoading()
                         wx.showToast({ title: err.message || '撤回失败', icon: 'none' })
+                    }
+                }
+            }
+        })
+    },
+
+    async onSubmitToDoctor() {
+        wx.showModal({
+            title: '确认提交',
+            content: '确认将此 AI 诊断结果提交给医生审核？提交后将无法修改。',
+            confirmColor: '#10b981',
+            success: async (res) => {
+                if (res.confirm) {
+                    wx.showLoading({ title: '提交中...' })
+                    try {
+                        await submitToDoctor(this.data.caseId)
+                        wx.hideLoading()
+                        wx.showToast({ title: '已提交给医生！', icon: 'success' })
+                        // 刷新页面以载入更新后的状态
+                        setTimeout(() => {
+                            this.loadCaseDetail(this.data.caseId)
+                        }, 1000)
+                    } catch (err: any) {
+                        wx.hideLoading()
+                        wx.showToast({ title: err.message || '提交失败', icon: 'none' })
                     }
                 }
             }

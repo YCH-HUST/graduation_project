@@ -138,8 +138,9 @@ def run_pipeline(case_id: str, pipeline_run_id: int):
         pipeline_run.save()
         timing['explanation'] = round(time.time() - stage_start, 2)
         
-        # 更新病例状态为待审核
-        case.status = 'pending_review'
+        # AI 诊断完成后，保持"运行中"状态
+        # 患者需在查看 AI 结果后，手动"确认提交给医生"才会切换为 pending_review
+        case.status = 'running'
         case.save()
         
     except Exception as e:

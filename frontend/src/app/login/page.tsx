@@ -77,7 +77,6 @@ function LoginForm() {
                 router.push(roleRedirects[response.role])
             }
         } catch (error: any) {
-            console.error('Login error:', error)
             toast.error('登录失败', {
                 description: error.message || '用户名或密码错误',
             })

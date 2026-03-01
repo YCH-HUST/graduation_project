@@ -56,9 +56,7 @@
     >
       {{isLoading ? '登录中...' : '立即登录'}}
     </button>
-    <view class="hint-text">
-      <text>测试账号：patient / patient123</text>
-    </view>
+
   </view>
 
   <!-- 注册表单 -->

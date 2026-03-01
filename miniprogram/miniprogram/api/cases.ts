@@ -167,6 +167,17 @@ export function deleteCase(caseId: string): Promise<void> {
 }
 
 /**
+ * 患者确认AI诊断结果并提交给医生
+ * 病例状态: running (AI完成) -> pending_review (待审核)
+ */
+export function submitToDoctor(caseId: string): Promise<{ ok: boolean; status: string }> {
+    return request<{ ok: boolean; status: string }>(`/api/cases/${caseId}/submit-to-doctor/`, {
+        method: 'POST',
+    })
+}
+
+
+/**
  * 获取病例列表
  */
 export function getCaseList(params: {

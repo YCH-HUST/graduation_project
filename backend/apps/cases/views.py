@@ -295,3 +295,46 @@ class CaseViewSet(viewsets.GenericViewSet):
             })
 
         return Response(history)
+
+    @action(detail=True, methods=['post'], url_path='submit-to-doctor')
+    def submit_to_doctor(self, request, pk=None):
+        """
+        POST /api/cases/{id}/submit-to-doctor/
+        患者确认AI诊断结果并提交给医生审核
+        病例状态: running (AI诊断完成) -> pending_review (提交给医生)
+        """
+        try:
+            case = Case.objects.get(pk=pk)
+        except Case.DoesNotExist:
+            return Response({'detail': '病例不存在'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 权限校验：必须是本人的病例
+        if request.user.role == 'patient' and case.patient != request.user:
+            return Response({'detail': '无权操作此病例'}, status=status.HTTP_403_FORBIDDEN)
+
+        # 状态校验：必须处于 running（AI已完成）才能提交
+        if case.status != 'running':
+            return Response(
+                {'detail': '当前病例状态不可提交，请确保 AI 诊断已完成'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 校验 AI 流水线确实已经跑完（至少有一个 success 的 run）
+        success_run = case.pipeline_runs.filter(status='success').exists()
+        if not success_run:
+            return Response(
+                {'detail': 'AI 诊断尚未完成，请稍后再提交'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 更新状态
+        case.status = 'pending_review'
+        case.save()
+
+        # 通知医生有新病例
+        notify_doctors_new_case(case)
+
+        log_action(user=request.user, action='case_submit', case=case)
+
+        return Response({'ok': True, 'status': 'pending_review'})
+

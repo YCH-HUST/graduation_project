@@ -14,14 +14,22 @@
     <button class="btn-outline-danger" bindtap="onWithdrawCase">放弃并撤回该诊断</button>
   </view>
 
-  <!-- 处理中提示 -->
-  <view class="card processing-card" wx:if="{{caseData.status === 'running' || caseData.status === 'created'}}">
+  <!-- AI 处理中提示（尚无结果）-->
+  <view class="card processing-card" wx:if="{{(caseData.status === 'running' || caseData.status === 'created') && !result}}">
     <text class="processing-icon">⚙️</text>
     <text class="processing-title">正在处理中</text>
     <text class="processing-desc">系统正在分析您的舌象数据，请稍候...</text>
     <view class="progress-wrap" style="margin-top:20rpx" wx:if="{{run}}">
       <view class="progress-bar" style="width:{{run.progress}}%"></view>
     </view>
+  </view>
+
+  <!-- AI 诊断完成，等待患者确认提交 -->
+  <view class="card submit-confirm-card" wx:if="{{caseData.status === 'running' && result}}">
+    <text class="submit-confirm-icon">📊</text>
+    <text class="submit-confirm-title">AI 诊断已完成</text>
+    <text class="submit-confirm-desc">请查阅下方 AI 分析结果，确认无误后点击提交给医生审核</text>
+    <button class="btn-submit-doctor" bindtap="onSubmitToDoctor">✅ 确认提交给医生</button>
   </view>
 
   <!-- ========== 医生确认结果(主要) ========== -->

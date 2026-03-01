@@ -7,12 +7,15 @@ page {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  overflow: hidden;
 }
 
 .chat-list {
   flex: 1;
+  min-height: 0;
   padding: 20rpx;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
 .loading-wrap, .empty-wrap {

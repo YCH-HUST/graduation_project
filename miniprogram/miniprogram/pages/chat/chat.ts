@@ -1,4 +1,4 @@
-import { getChatMessages, sendChatMessage, markChatAsRead, ChatMessage } from '../../api/chat'
+import { getChatMessages, sendChatMessage, markChatAsRead, getConversationList, ChatMessage } from '../../api/chat'
 import { formatTime } from '../../utils/util'
 import { getUser } from '../../utils/storage'
 
@@ -55,8 +55,14 @@ Page({
             this.setData({ patientId: patient_id })
             this.initUser()
             this.loadHistoryAndConnectSSE(patient_id)
-            // mark unread as clear
             markChatAsRead(patient_id).catch(() => { })
+            // 获取医生名称并更新导航栏标题
+            getConversationList().then(list => {
+                const conv = list.find((c: any) => String(c.patient_id) === String(patient_id))
+                if (conv && conv.name) {
+                    wx.setNavigationBarTitle({ title: conv.name })
+                }
+            }).catch(() => { })
         } else {
             wx.showToast({ title: '参数错误', icon: 'error' })
         }

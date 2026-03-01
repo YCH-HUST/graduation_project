@@ -39,6 +39,22 @@ apiClient.interceptors.request.use(
     }
 )
 
+// 从 DRF 错误响应体提取人类可读的错误信息
+function extractDRFErrorMessage(data: any): string | null {
+    if (!data) return null
+    if (typeof data.detail === 'string') return data.detail
+    if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) return data.non_field_errors[0]
+    if (typeof data === 'object') {
+        const firstKey = Object.keys(data)[0]
+        if (firstKey) {
+            const fieldErr = data[firstKey]
+            const msg = Array.isArray(fieldErr) ? fieldErr[0] : String(fieldErr)
+            return msg
+        }
+    }
+    return null
+}
+
 // 响应拦截器：处理错误和 401 自动登出
 apiClient.interceptors.response.use(
     (response) => response,
@@ -55,6 +71,13 @@ apiClient.interceptors.response.use(
 
                 // 跳转到登录页
                 window.location.href = '/login'
+            }
+        } else if (error.response?.status === 400) {
+            // 从 DRF 响应体提取具体错误原因，然后附加到 error.message 上
+            const drfMsg = extractDRFErrorMessage(error.response.data)
+            if (drfMsg) {
+                // 覆盖 error.message 使调用方能直接拿到中文提示
+                ; (error as any).message = drfMsg
             }
         } else if (error.response?.status === 403) {
             toast.error('没有访问权限')
