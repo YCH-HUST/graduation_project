@@ -42,22 +42,23 @@ Page({
     async loadData() {
         this.setData({ isLoading: true, casesLoading: true })
         try {
-            const [profile, casesRes] = await Promise.all([
+            const [profile, allCasesRes, recentCasesRes] = await Promise.all([
                 getProfile(),
-                getCaseList({ page: 1, page_size: 5 }),
+                getCaseList({ page: 1, page_size: 999 }),  // 全量用于统计
+                getCaseList({ page: 1, page_size: 5 }),     // 仅取最近5条显示
             ])
-            const cases = casesRes.items
+            const allCases = allCasesRes.items
 
-            // 统计
+            // 基于全量数据统计（准确）
             const stats = { pending_review: 0, running: 0, approved: 0 }
-            cases.forEach((c) => {
+            allCases.forEach((c) => {
                 if (c.status === 'pending_review') stats.pending_review++
                 if (c.status === 'running' || c.status === 'created') stats.running++
                 if (c.status === 'approved') stats.approved++
             })
 
-            // 格式化列表
-            const formattedCases = cases.map((c) => ({
+            // 格式化最近5条病例显示
+            const formattedCases = recentCasesRes.items.map((c) => ({
                 ...c,
                 chief_complaint: c.questionnaire?.chief_complaint || '无主诉',
                 statusText: STATUS_TEXT[c.status] || c.status,

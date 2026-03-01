@@ -36,6 +36,7 @@ import type { Case, PendingCasesResponse } from '@/types'
 const STATUS_TABS = [
     { key: 'all', label: '全部', icon: FolderOpen, color: 'text-slate-600 dark:text-slate-400' },
     { key: 'pending_review', label: '待审核', icon: Clock, color: 'text-amber-600 dark:text-amber-400' },
+    { key: 'running', label: '诊断中', icon: ClipboardCheck, color: 'text-blue-600 dark:text-blue-400' },
     { key: 'approved', label: '已通过', icon: CheckCircle2, color: 'text-green-600 dark:text-green-400' },
     { key: 'rejected', label: '已驳回', icon: XCircle, color: 'text-red-600 dark:text-red-400' },
 ]

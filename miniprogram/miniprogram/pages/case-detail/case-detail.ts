@@ -3,6 +3,8 @@ import { getCaseDetail, submitToDoctor } from '../../api/cases'
 import { STATUS_TEXT, STATUS_COLOR, ASSET_TYPE_NAMES } from '../../utils/constants'
 import type { CaseStatus } from '../../utils/constants'
 
+const app = getApp<{ globalData: { baseUrl?: string } }>()
+
 Page({
     data: {
         caseId: '',
@@ -42,10 +44,11 @@ Page({
             const caseInfo = data.case
             const run = data.latest_run
             const review = (data as any).latest_review || null
+            const baseUrl = (app && app.globalData && app.globalData.baseUrl) ? app.globalData.baseUrl : 'http://localhost:8000'
             const assets = (data.assets || []).map((a: any) => ({
                 ...a,
                 typeName: ASSET_TYPE_NAMES[a.type] || a.type,
-                fullUrl: a.url.startsWith('http') ? a.url : `http://localhost:8000${a.url}`,
+                fullUrl: a.url.startsWith('http') ? a.url : `${baseUrl}${a.url}`,
             }))
 
             // ML 原始结果（降级为参考）

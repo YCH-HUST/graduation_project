@@ -44,7 +44,7 @@ Page({
         inputValue: '',
         isLoading: true,
         isSending: false,
-        scrollToMessage: ''
+        scrollTop: 0
     },
 
     requestTask: null as WechatMiniprogram.RequestTask | null,
@@ -220,12 +220,6 @@ Page({
     },
 
     scrollToBottom() {
-        const msgs = this.data.messages
-        if (msgs.length > 0) {
-            const lastMsg = msgs[msgs.length - 1]
-            this.setData({
-                scrollToMessage: `msg-${lastMsg.id}`
-            })
-        }
+        this.setData({ scrollTop: 999999999 })
     }
 })

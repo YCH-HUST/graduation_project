@@ -1,5 +1,5 @@
 <view class="chat-container">
-  <scroll-view class="chat-list" scroll-y scroll-into-view="{{scrollToMessage}}" scroll-with-animation>
+  <scroll-view class="chat-list" scroll-y scroll-top="{{scrollTop}}" scroll-with-animation>
     <view wx:if="{{isLoading}}" class="loading-wrap">
       <view class="loading-icon"></view>
       <text>加载中...</text>

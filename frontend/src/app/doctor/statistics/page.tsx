@@ -56,7 +56,6 @@ export default function StatisticsPage() {
             const response = await getStatistics()
             setData(response)
         } catch (err: any) {
-            console.error('Load statistics error:', err)
             toast.error('加载失败', { description: err.message })
         } finally {
             setIsLoading(false)

@@ -94,11 +94,12 @@ class DoctorStatisticsView(APIView):
             ]
         
         # 最近审核记录 (每份病例仅显示最新的那次审核结果)
+        # 使用 select_related 避免 N+1 查询
         recent_reviews = []
         seen_case_ids = set()
         
-        # 按照时间倒序获取所有的审核记录
-        for review in reviews.select_related('case__patient').order_by('-created_at'):
+        qs = reviews.select_related('case', 'case__patient').order_by('-created_at')
+        for review in qs:
             if review.case_id not in seen_case_ids:
                 seen_case_ids.add(review.case_id)
                 recent_reviews.append({
@@ -109,7 +110,6 @@ class DoctorStatisticsView(APIView):
                     'created_at': review.created_at.isoformat(),
                 })
             
-            # 收集满 5 条即可结束
             if len(recent_reviews) >= 5:
                 break
         
