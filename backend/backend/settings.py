@@ -81,6 +81,7 @@ DATABASES = {
         'PASSWORD': '010831',
         'HOST': 'localhost',
         'PORT': '3306',
+        'CONN_MAX_AGE': 28800, # 配合 MySQL wait_timeout 避免长时间无活动断开
     }
 }
 

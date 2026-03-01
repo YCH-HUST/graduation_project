@@ -208,7 +208,9 @@ export default function AdminHealthPage() {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="py-4 px-4">{getStatusBadge(service.status)}</td>
+                                            <td className="py-4 px-4 whitespace-nowrap">
+                                                {getStatusBadge(service.status)}
+                                            </td>
                                             <td className="py-4 px-4">
                                                 <span
                                                     className={

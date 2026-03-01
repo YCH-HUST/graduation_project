@@ -267,16 +267,16 @@ class CaseViewSet(viewsets.GenericViewSet):
     def patient_history(self, request, patient_id=None):
         """
         GET /api/cases/patient-history/<patient_id>/
-        获取指定患者的历史已审批病例数据（用于病程对比）
+        获取指定患者的历史病例数据（含已审批及待审），用于病程对比
         """
         cases = Case.objects.filter(
             patient_id=patient_id,
-            status='approved'
+            status__in=['approved', 'pending_review']
         ).order_by('created_at')
 
         history = []
         for c in cases:
-            run = c.pipeline_runs.filter(status='completed').order_by('-created_at').first()
+            run = c.pipeline_runs.filter(status='success').order_by('-created_at').first()
             if not run:
                 continue
 
