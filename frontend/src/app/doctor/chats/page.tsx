@@ -35,12 +35,14 @@ export default function DoctorChatsPage() {
         // 也可以加一个轮询，或者复用全局 SSE 收到未读更新时重新拉列表
         const handleNewNotification = () => fetchConversations()
         window.addEventListener('new-notification-arrived', handleNewNotification)
-        // Ideally we would trigger this on chat SSE, so let's also listen to the same effect if possible.
-        // Or we just rely on interval polling for the conversation list to keep it simple if not active.
+        window.addEventListener('new-chat-message-arrived', handleNewNotification)
+
+        // 保底轮询
         const interval = setInterval(fetchConversations, 10000)
 
         return () => {
             window.removeEventListener('new-notification-arrived', handleNewNotification)
+            window.removeEventListener('new-chat-message-arrived', handleNewNotification)
             clearInterval(interval)
         }
     }, [])

@@ -97,7 +97,7 @@ export function Sidebar() {
         }
     }, [isMobileOpen])
 
-    // 当未读数量增加时，向整个应用广播
+    // 当未读通知数量增加时，向整个应用广播
     useEffect(() => {
         if (unreadCount > prevUnreadRef.current) {
             window.dispatchEvent(new CustomEvent('new-notification-arrived'))
@@ -105,148 +105,56 @@ export function Sidebar() {
         prevUnreadRef.current = unreadCount
     }, [unreadCount])
 
-    // 医生端：建立 SSE 长连接，监听未读通知数量
+    // 当未读聊天数量增加时，向整个应用广播
+    const prevUnreadChatRef = useRef(0)
+    useEffect(() => {
+        if (unreadChatCount > prevUnreadChatRef.current) {
+            window.dispatchEvent(new CustomEvent('new-chat-message-arrived'))
+        }
+        prevUnreadChatRef.current = unreadChatCount
+    }, [unreadChatCount])
+
+    // 医生端：建立轮询（Polling），统一拉取未读状态
+    // 使用轮询替代 SSE，解决底层缓存穿透、Nginx/Next.js代理缓冲、LocMemCache进程隔离导致的气泡数字错误问题
     useEffect(() => {
         if (role !== 'doctor' || !token) return
 
-        const abortController = new AbortController()
-        let retryTimeout: NodeJS.Timeout
+        let isPolling = true
 
-        const connectSSE = async () => {
+        const fetchAllUnread = async () => {
+            if (!isPolling) return
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiUrl}/api/notifications/stream/`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    signal: abortController.signal
-                })
+                // 并发拉取系统通知和聊天消息的未读总数
+                const [notifCount, chatCount] = await Promise.all([
+                    getUnreadCount().catch(() => 0),
+                    import('@/api/chat').then(m => m.getChatUnreadCount()).catch(() => 0)
+                ])
 
-                if (!response.ok) {
-                    throw new Error(`SSE error: ${response.status}`)
+                if (isPolling) {
+                    setUnreadCount(notifCount)
+                    setUnreadChatCount(chatCount)
                 }
-
-                if (!response.body) return
-
-                const reader = response.body.getReader()
-                const decoder = new TextDecoder()
-                let buffer = ''
-
-                while (true) {
-                    const { done, value } = await reader.read()
-                    if (done) break
-
-                    buffer += decoder.decode(value, { stream: true })
-
-                    const lines = buffer.split('\n')
-                    buffer = lines.pop() || ''
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const dataStr = line.replace('data: ', '').trim()
-                            if (!dataStr) continue
-                            try {
-                                const data = JSON.parse(dataStr)
-                                if (data.unread_count !== undefined) {
-                                    setUnreadCount(data.unread_count)
-                                }
-                            } catch (e) { }
-                        }
-                    }
-                }
-            } catch (err: any) {
-                if (err.name === 'AbortError') return
-                // 网络异常或断开时，5秒后自动重连
-                retryTimeout = setTimeout(connectSSE, 5000)
+            } catch (err) {
+                console.error('Failed to poll unread counts', err)
             }
         }
 
-        connectSSE()
+        // 首次立即拉取
+        fetchAllUnread()
 
-        // 当用户在通知页面主动标记已读时，为了UI“秒消失”立刻主动拉取一次
-        const handleLocalRead = async () => {
-            try {
-                const count = await getUnreadCount()
-                setUnreadCount(count)
-            } catch (_) { }
-        }
+        // 之后每 5 秒轮询一次，保证数据绝对准确实时
+        const intervalId = setInterval(fetchAllUnread, 5000)
+
+        // 当用户在通知页面主动标记已读时，立刻拉取一次
+        const handleLocalRead = () => { fetchAllUnread() }
         window.addEventListener('notifications-read', handleLocalRead)
+        window.addEventListener('chat-read', handleLocalRead)
 
         return () => {
-            abortController.abort()
-            clearTimeout(retryTimeout)
+            isPolling = false
+            clearInterval(intervalId)
             window.removeEventListener('notifications-read', handleLocalRead)
-        }
-    }, [role, token])
-
-    // 医生端：建立全局聊天 SSE 长连接
-    useEffect(() => {
-        if (role !== 'doctor' || !token) return
-
-        const abortController = new AbortController()
-        let retryTimeout: NodeJS.Timeout
-
-        const connectChatSSE = async () => {
-            try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-                const response = await fetch(`${apiUrl}/api/chat/stream/global/`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    signal: abortController.signal
-                })
-
-                if (!response.ok) {
-                    throw new Error(`Chat SSE error: ${response.status}`)
-                }
-
-                if (!response.body) return
-
-                const reader = response.body.getReader()
-                const decoder = new TextDecoder()
-                let buffer = ''
-
-                while (true) {
-                    const { done, value } = await reader.read()
-                    if (done) break
-
-                    buffer += decoder.decode(value, { stream: true })
-                    const lines = buffer.split('\n')
-                    buffer = lines.pop() || ''
-
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const dataStr = line.replace('data: ', '').trim()
-                            if (!dataStr) continue
-                            try {
-                                const data = JSON.parse(dataStr)
-                                if (data.type === 'unread_count' && data.count !== undefined) {
-                                    setUnreadChatCount(data.count)
-                                }
-                            } catch (e) { }
-                        }
-                    }
-                }
-            } catch (err: any) {
-                if (err.name === 'AbortError') return
-                retryTimeout = setTimeout(connectChatSSE, 5000)
-            }
-        }
-
-        connectChatSSE()
-
-        // 当用户主动标记聊天已读时，为了UI“立刻消失”主动收到的事件
-        const handleChatLocalRead = () => {
-            // Just let SSE naturally poll back, or decrement speculatively.
-            // For now, we will wait for SSE to push if we don't have get global unread direct api,
-            // but SSE triggers fast enough.
-        }
-        window.addEventListener('chat-read', handleChatLocalRead)
-
-        return () => {
-            abortController.abort()
-            clearTimeout(retryTimeout)
-            window.removeEventListener('chat-read', handleChatLocalRead)
+            window.removeEventListener('chat-read', handleLocalRead)
         }
     }, [role, token])
 

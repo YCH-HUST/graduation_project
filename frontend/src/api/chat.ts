@@ -54,3 +54,12 @@ export async function markChatAsRead(patientId: number): Promise<void> {
     if (isMockMode()) return
     await apiClient.put(`/api/chat/${patientId}/read/`)
 }
+
+/**
+ * 获取全局未读聊天数量
+ */
+export async function getChatUnreadCount(): Promise<number> {
+    if (isMockMode()) return 0
+    const response = await apiClient.get<{ count: number }>('/api/chat/unread-count/')
+    return response.data.count
+}

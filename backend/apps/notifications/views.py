@@ -146,6 +146,9 @@ class NotificationStreamView(APIView):
                         cache.set(cache_key, current_timestamp, timeout=None)
                         
                     last_timestamp = current_timestamp
+                else:
+                    # 发送空白注释作为 ping，保活并测探客户端是否处于连接状态，避免线程池耗尽
+                    yield ": ping\n\n"
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'

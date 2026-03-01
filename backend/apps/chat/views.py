@@ -67,6 +67,9 @@ class ChatStreamView(APIView):
                         cache.set(cache_key, current_timestamp, timeout=None)
                         
                     last_timestamp = current_timestamp
+                else:
+                    # Keep-alive ping to avoid WSGI thread deadlock on client disconnect
+                    yield ": ping\n\n"
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
@@ -136,6 +139,20 @@ class ChatMarkReadView(APIView):
             
         return Response({"success": True, "updated": updated})
 
+class ChatUnreadCountView(APIView):
+    """
+    获取全局未读聊天消息数量
+    GET /api/chat/unread-count/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.role == 'patient':
+            count = ChatMessage.objects.filter(patient=user, is_read=False).exclude(sender=user).count()
+        else:
+            count = ChatMessage.objects.filter(is_read=False, sender__role='patient').count()
+        return Response({'count': count})
 
 class GlobalChatStreamView(APIView):
     """
@@ -181,6 +198,9 @@ class GlobalChatStreamView(APIView):
                         cache.set(cache_key, current_timestamp, timeout=None)
                         
                     last_timestamp = current_timestamp
+                else:
+                    # Keep-alive ping
+                    yield ": ping\n\n"
 
         response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
         response['Cache-Control'] = 'no-cache'
