@@ -50,6 +50,13 @@ export default function NotificationsPage() {
 
     useEffect(() => {
         loadNotifications()
+
+        // 监听来自 SSE (Sidebar.tsx) 的新消息事件
+        window.addEventListener('new-notification-arrived', loadNotifications)
+
+        return () => {
+            window.removeEventListener('new-notification-arrived', loadNotifications)
+        }
     }, [loadNotifications])
 
     const handleMarkAsRead = async (notification: NotificationItem) => {

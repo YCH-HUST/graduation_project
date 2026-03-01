@@ -7,6 +7,7 @@ from .views import (
     NotificationMarkReadView,
     NotificationMarkAllReadView,
     NotificationUnreadCountView,
+    NotificationStreamView,
 )
 
 urlpatterns = [
@@ -18,4 +19,6 @@ urlpatterns = [
     path('notifications/read-all', NotificationMarkAllReadView.as_view(), name='notification_mark_all_read_no_slash'),
     path('notifications/unread-count/', NotificationUnreadCountView.as_view(), name='notification_unread_count'),
     path('notifications/unread-count', NotificationUnreadCountView.as_view(), name='notification_unread_count_no_slash'),
+    path('notifications/stream/', NotificationStreamView.as_view(), name='notification_stream'),
+    path('notifications/stream', NotificationStreamView.as_view(), name='notification_stream_no_slash'),
 ]

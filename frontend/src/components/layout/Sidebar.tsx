@@ -71,9 +71,10 @@ const roleColors: Record<UserRole, string> = {
 
 export function Sidebar() {
     const pathname = usePathname()
-    const { user, role, logout } = useAuthStore()
+    const { user, role, token, logout } = useAuthStore()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
     const [unreadCount, setUnreadCount] = useState(0)
+    const prevUnreadRef = useRef(0)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     // 路由变化时关闭移动端菜单
@@ -93,27 +94,87 @@ export function Sidebar() {
         }
     }, [isMobileOpen])
 
-    // 医生端：轮询未读通知数量
+    // 当未读数量增加时，向整个应用广播
     useEffect(() => {
-        if (role !== 'doctor') return
+        if (unreadCount > prevUnreadRef.current) {
+            window.dispatchEvent(new CustomEvent('new-notification-arrived'))
+        }
+        prevUnreadRef.current = unreadCount
+    }, [unreadCount])
 
-        const fetchUnread = async () => {
+    // 医生端：建立 SSE 长连接，监听未读通知数量
+    useEffect(() => {
+        if (role !== 'doctor' || !token) return
+
+        const abortController = new AbortController()
+        let retryTimeout: NodeJS.Timeout
+
+        const connectSSE = async () => {
+            try {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+                const response = await fetch(`${apiUrl}/api/notifications/stream/`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    signal: abortController.signal
+                })
+
+                if (!response.ok) {
+                    throw new Error(`SSE error: ${response.status}`)
+                }
+
+                if (!response.body) return
+
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
+                let buffer = ''
+
+                while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    buffer += decoder.decode(value, { stream: true })
+
+                    const lines = buffer.split('\n')
+                    buffer = lines.pop() || ''
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.replace('data: ', '').trim()
+                            if (!dataStr) continue
+                            try {
+                                const data = JSON.parse(dataStr)
+                                if (data.unread_count !== undefined) {
+                                    setUnreadCount(data.unread_count)
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                }
+            } catch (err: any) {
+                if (err.name === 'AbortError') return
+                // 网络异常或断开时，5秒后自动重连
+                retryTimeout = setTimeout(connectSSE, 5000)
+            }
+        }
+
+        connectSSE()
+
+        // 当用户在通知页面主动标记已读时，为了UI“秒消失”立刻主动拉取一次
+        const handleLocalRead = async () => {
             try {
                 const count = await getUnreadCount()
                 setUnreadCount(count)
             } catch (_) { }
         }
-
-        fetchUnread()
-        timerRef.current = setInterval(fetchUnread, 2000) // 每 2 秒刷新一次
-
-        window.addEventListener('notifications-read', fetchUnread)
+        window.addEventListener('notifications-read', handleLocalRead)
 
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current)
-            window.removeEventListener('notifications-read', fetchUnread)
+            abortController.abort()
+            clearTimeout(retryTimeout)
+            window.removeEventListener('notifications-read', handleLocalRead)
         }
-    }, [role])
+    }, [role, token])
 
     if (!role) return null
 

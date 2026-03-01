@@ -5,6 +5,10 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.http import StreamingHttpResponse
+from django.core.cache import cache
+import time
+import json
 
 from .models import Notification
 from .serializers import NotificationSerializer
@@ -93,3 +97,58 @@ class NotificationUnreadCountView(APIView):
         ).count()
         
         return Response({'count': count})
+
+
+class NotificationStreamView(APIView):
+    """
+    Server-Sent Events 接口，推送未读消息数
+    GET /api/notifications/stream/
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user_id = request.user.id
+        
+        def event_stream():
+            # 初始化查询
+            unread_count = Notification.objects.filter(
+                recipient_id=user_id,
+                is_read=False
+            ).count()
+            data = json.dumps({'unread_count': unread_count})
+            yield f"data: {data}\n\n"
+            
+            cache_key = f'unread_update_{user_id}'
+            # 将初始化时间作为最后的已知更新时间
+            last_timestamp = cache.get(cache_key) or time.time()
+            # 设置一次缓存，避免为None
+            if cache.get(cache_key) is None:
+                cache.set(cache_key, last_timestamp, timeout=None)
+            
+            while True:
+                time.sleep(1)
+                
+                # 获取当前缓存的时间戳
+                current_timestamp = cache.get(cache_key)
+                
+                # 如果缓存不存在或者时间戳变了
+                if current_timestamp is None or current_timestamp != last_timestamp:
+                    unread_count = Notification.objects.filter(
+                        recipient_id=user_id,
+                        is_read=False
+                    ).count()
+                    
+                    data = json.dumps({'unread_count': unread_count})
+                    yield f"data: {data}\n\n"
+                    
+                    if current_timestamp is None:
+                        current_timestamp = time.time()
+                        cache.set(cache_key, current_timestamp, timeout=None)
+                        
+                    last_timestamp = current_timestamp
+
+        response = StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
+

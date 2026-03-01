@@ -3,6 +3,10 @@ Notification models.
 """
 from django.db import models
 from django.conf import settings
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from django.core.cache import cache
+import time
 
 
 class Notification(models.Model):
@@ -61,3 +65,14 @@ class Notification(models.Model):
     
     def __str__(self):
         return f"{self.recipient.username} - {self.title}"
+
+
+@receiver(post_save, sender=Notification)
+@receiver(post_delete, sender=Notification)
+def update_notification_cache(sender, instance, **kwargs):
+    """
+    当通知发生改变（增、删、改）时，更新对应用户的缓存时间戳
+    """
+    cache_key = f'unread_update_{instance.recipient_id}'
+    cache.set(cache_key, time.time(), timeout=None)
+
