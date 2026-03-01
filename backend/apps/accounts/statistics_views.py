@@ -47,14 +47,19 @@ class DoctorStatisticsView(APIView):
             'pending_count': pending_count,
         }
         
-        # 近7天审核趋势
-        today = datetime.now().date()
+        from django.utils import timezone
+        
+        # 近7天审核趋势 (使用 range 避免 __date 跨时区问题)
+        today = timezone.localtime().date()
         trend = []
         for i in range(6, -1, -1):
-            date = today - timedelta(days=i)
-            count = reviews.filter(created_at__date=date).count()
+            target_date = today - timedelta(days=i)
+            start_of_day = timezone.make_aware(datetime.combine(target_date, datetime.min.time()))
+            end_of_day = start_of_day + timedelta(days=1)
+            
+            count = reviews.filter(created_at__gte=start_of_day, created_at__lt=end_of_day).count()
             trend.append({
-                'date': date.strftime('%m-%d'),
+                'date': target_date.strftime('%m-%d'),
                 'count': count,
             })
         
