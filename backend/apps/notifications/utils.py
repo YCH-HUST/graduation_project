@@ -52,6 +52,11 @@ def notify_doctors_new_case(case):
     
     if notifications:
         Notification.objects.bulk_create(notifications)
+        # bulk_create 不会触发 post_save signal，需手动触发缓存更新以推送 SSE
+        from django.core.cache import cache
+        import time
+        for doctor in doctors:
+            cache.set(f'unread_update_{doctor.id}', time.time(), timeout=None)
 
 
 def notify_patient_case_reviewed(case, decision, doctor):
