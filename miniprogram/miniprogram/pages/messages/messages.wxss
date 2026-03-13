@@ -5,17 +5,6 @@
   background-color: #f8fafc;
 }
 
-.header {
-  padding: 30rpx 40rpx;
-  background-color: #fff;
-  padding-top: env(safe-area-inset-top);
-}
-
-.title {
-  font-size: 40rpx;
-  font-weight: bold;
-  color: #0f172a;
-}
 
 .list-container {
   flex: 1;

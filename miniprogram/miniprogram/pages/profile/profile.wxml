@@ -63,12 +63,12 @@
 
     <view style="display:flex;gap:20rpx;margin-top:16rpx">
       <button
-        class="btn-primary {{isSaving ? 'btn-disabled' : ''}}"
+        class="save-btn {{isSaving ? 'btn-disabled' : ''}}"
         disabled="{{isSaving}}"
         bindtap="onSave"
-        style="flex:2"
+        style="flex:1"
       >
-        {{isSaving ? '保存中...' : '💾 保存修改'}}
+        {{isSaving ? '保存中...' : '保存修改'}}
       </button>
       <button class="logout-btn" bindtap="onLogout" style="flex:1">退出登录</button>
     </view>
@@ -91,7 +91,7 @@
       <input class="form-input" password placeholder="再次输入新密码" value="{{pwForm.confirm_password}}" bindinput="onPwInput" data-field="confirm_password" />
     </view>
 
-    <button class="btn-primary {{isChangingPw ? 'btn-disabled' : ''}}" disabled="{{isChangingPw}}" bindtap="onChangePassword">
+    <button class="save-btn {{isChangingPw ? 'btn-disabled' : ''}}" disabled="{{isChangingPw}}" bindtap="onChangePassword">
       {{isChangingPw ? '提交中...' : '确认修改密码'}}
     </button>
   </view>

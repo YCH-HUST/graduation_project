@@ -75,3 +75,21 @@
   margin-top: 0;
 }
 .logout-btn::after { border: none; }
+
+/* 保存/修改密码按钮 (大小与退出登录一致) */
+.save-btn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: #f0fdf4;
+  color: #10b981;
+  font-size: 28rpx;
+  font-weight: 600;
+  border-radius: 44rpx;
+  border: 2rpx solid #6ee7b7;
+  margin-top: 0;
+}
+.save-btn::after { border: none; }

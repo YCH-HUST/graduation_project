@@ -75,13 +75,14 @@ page {
 .btn-ghost::after { border: none; }
 
 .btn-outline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: #10b981;
   border: 2rpx solid #10b981;
   border-radius: 48rpx;
   height: 80rpx;
-  line-height: 80rpx;
-  text-align: center;
   font-size: 28rpx;
 }
 

@@ -1,7 +1,5 @@
 <view class="container">
-  <view class="header">
-    <text class="title">消息</text>
-  </view>
+  <!-- Removed redundant header -->
 
   <scroll-view class="list-container" scroll-y>
     <view wx:if="{{isLoading}}" class="loading">加载中...</view>

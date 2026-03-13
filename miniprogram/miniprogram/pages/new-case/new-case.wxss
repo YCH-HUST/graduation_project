@@ -8,9 +8,8 @@
 .back-btn { font-size: 28rpx; color: #10b981; margin-bottom: 12rpx; }
 
 /* 科室网格 */
-.dept-grid { display: flex; flex-wrap: wrap; gap: 20rpx; }
+.dept-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24rpx; }
 .dept-card {
-  width: calc(50% - 10rpx);
   box-sizing: border-box;
   background: #ffffff;
   border-radius: 24rpx;

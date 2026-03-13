@@ -29,7 +29,7 @@
     <text class="submit-confirm-icon">📊</text>
     <text class="submit-confirm-title">AI 诊断已完成</text>
     <text class="submit-confirm-desc">请查阅下方 AI 分析结果，确认无误后点击提交给医生审核</text>
-    <button class="btn-submit-doctor" bindtap="onSubmitToDoctor">✅ 确认提交给医生</button>
+    <button class="btn-submit-doctor" bindtap="onSubmitToDoctor">确认提交给医生</button>
   </view>
 
   <!-- ========== 医生确认结果(主要) ========== -->
