@@ -1,7 +1,7 @@
 // app.ts
 
 // 环境配置 — 生产部署时修改此处的 baseUrl 即可
-const ENV = {
+export const ENV = {
   dev: 'http://localhost:8000',
   prod: 'https://xn--uisx67a1pe.com', // 生产环境请替换为真实域名，如 'https://api.example.com'
 }

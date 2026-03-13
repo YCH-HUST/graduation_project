@@ -1,8 +1,7 @@
 import { getChatMessages, sendChatMessage, markChatAsRead, getConversationList, ChatMessage } from '../../api/chat'
 import { formatTime } from '../../utils/util'
 import { getUser } from '../../utils/storage'
-
-const app = getApp<{ globalData: { baseUrl?: string } }>()
+import { getBaseUrl } from '../../utils/request'
 
 // 简易 UTF-8 ArrayBuffer 到 String 转换
 function decodeUTF8(buffer: ArrayBuffer): string {
@@ -111,7 +110,7 @@ Page({
 
     connectSSE(patientId: string) {
         // 处理开发环境和生产环境的基础URL
-        const baseUrl = (app && app.globalData && app.globalData.baseUrl) ? app.globalData.baseUrl : 'http://localhost:8000'
+        const baseUrl = getBaseUrl()
         const token = wx.getStorageSync('token')
 
         if (this.requestTask) {

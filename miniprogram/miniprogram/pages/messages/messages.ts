@@ -1,7 +1,6 @@
 import { getConversationList, ChatConversation } from '../../api/chat'
 import { formatTime } from '../../utils/util'
-
-const app = getApp<{ globalData: { baseUrl?: string } }>()
+import { getBaseUrl } from '../../utils/request'
 
 Page({
     data: {
@@ -54,7 +53,7 @@ Page({
     },
 
     connectGlobalSSE() {
-        const baseUrl = (app && app.globalData && app.globalData.baseUrl) ? app.globalData.baseUrl : 'http://localhost:8000'
+        const baseUrl = getBaseUrl()
         const token = wx.getStorageSync('token')
         if (!token) return
 

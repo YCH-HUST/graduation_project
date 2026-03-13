@@ -3,13 +3,11 @@
  * 基于 wx.request，自动携带 token，统一处理错误，网络失败自动重试
  */
 
-// 环境配置：通过 app 的 globalData 获取，开发环境回退 localhost
-function getBaseUrl(): string {
-    try {
-        const app = getApp<{ globalData: { baseUrl?: string } }>()
-        if (app?.globalData?.baseUrl) return app.globalData.baseUrl
-    } catch (_) { }
-    return 'http://localhost:8000'
+import { ENV } from '../app'
+
+// 环境配置：通过 app 的 globalData 获取，退回到 ENV.prod
+export function getBaseUrl(): string {
+    return ENV.prod
 }
 
 const MAX_RETRY = 2  // 网络失败最多重试次数
@@ -191,4 +189,4 @@ export function uploadForDetection<T = any>(
     })
 }
 
-export default { request, uploadFile, uploadForDetection }
+export default { request, uploadFile, uploadForDetection, getBaseUrl }

@@ -2,8 +2,7 @@
 import { getCaseDetail, submitToDoctor } from '../../api/cases'
 import { STATUS_TEXT, STATUS_COLOR, ASSET_TYPE_NAMES } from '../../utils/constants'
 import type { CaseStatus } from '../../utils/constants'
-
-const app = getApp<{ globalData: { baseUrl?: string } }>()
+import { getBaseUrl } from '../../utils/request'
 
 Page({
     data: {
@@ -44,7 +43,7 @@ Page({
             const caseInfo = data.case
             const run = data.latest_run
             const review = (data as any).latest_review || null
-            const baseUrl = (app && app.globalData && app.globalData.baseUrl) ? app.globalData.baseUrl : 'http://localhost:8000'
+            const baseUrl = getBaseUrl()
             const assets = (data.assets || []).map((a: any) => ({
                 ...a,
                 typeName: ASSET_TYPE_NAMES[a.type] || a.type,
