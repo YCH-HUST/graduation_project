@@ -12,6 +12,9 @@
 
 ## 快速开始
 
+```bash
+gunicorn backend.wsgi:application --bind 0.0.0.0:8000 --workers 21 --threads 4 --worker-class gevent
+```
 ### 1. 创建数据库
 
 在 MySQL 中创建数据库：
