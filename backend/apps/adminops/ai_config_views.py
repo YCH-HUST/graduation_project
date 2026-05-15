@@ -144,10 +144,14 @@ class TestLLMView(APIView):
                     'message': '连接成功！',
                 })
             else:
-                err = resp.json()
+                try:
+                    err = resp.json()
+                    err_msg = err.get("message", str(err)) if isinstance(err, dict) else str(err)
+                except Exception:
+                    err_msg = resp.text
                 return Response({
                     'success': False,
-                    'message': f'API 返回错误 {resp.status_code}: {err.get("message", str(err))}',
+                    'message': f'API 返回错误 {resp.status_code}: {err_msg}',
                 }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({
